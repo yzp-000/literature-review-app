@@ -29,6 +29,89 @@
 
 ## 快速开始
 
+### 0. 安装基础环境
+
+如果你的系统还没有 Python、Node.js 或 Git，请先安装：
+
+<details>
+<summary><b>Ubuntu / Debian</b></summary>
+
+```bash
+# 更新包索引
+sudo apt update
+
+# 安装 Python 3 和 pip
+sudo apt install -y python3 python3-pip python3-venv
+
+# 安装 Node.js 18.x 和 npm
+curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash -
+sudo apt install -y nodejs
+
+# 安装 Git
+sudo apt install -y git
+
+# 验证
+python3 --version   # >= 3.10
+node --version       # >= 18.0
+npm --version        # >= 9.0
+git --version
+```
+
+</details>
+
+<details>
+<summary><b>macOS</b></summary>
+
+```bash
+# 安装 Homebrew（如果没有）
+/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+
+# 安装 Python、Node.js、Git
+brew install python node git
+
+# 验证
+python3 --version
+node --version
+npm --version
+```
+
+</details>
+
+<details>
+<summary><b>Windows</b></summary>
+
+1. **Python**: 下载安装 https://www.python.org/downloads/ （勾选 "Add to PATH"）
+2. **Node.js**: 下载安装 https://nodejs.org/ （LTS 版本，自带 npm）
+3. **Git**: 下载安装 https://git-scm.com/download/win
+
+安装后在终端验证：
+```bash
+python --version
+node --version
+npm --version
+git --version
+```
+
+</details>
+
+<details>
+<summary><b>使用 Conda（推荐科研用户）</b></summary>
+
+如果你已有 Anaconda / Miniconda：
+
+```bash
+# 创建专用环境
+conda create -n litreview python=3.11 nodejs=18 -y
+conda activate litreview
+
+# 验证
+python --version
+node --version
+npm --version
+```
+
+</details>
+
 ### 1. 克隆项目
 
 ```bash
@@ -43,7 +126,12 @@ cd backend
 pip install -r requirements.txt
 ```
 
-> 如果你使用 conda/venv 等虚拟环境，建议先激活环境再安装。
+> 建议使用虚拟环境（venv / conda）避免与系统包冲突：
+> ```bash
+> python3 -m venv .venv && source .venv/bin/activate  # Linux/macOS
+> python -m venv .venv && .venv\Scripts\activate       # Windows
+> pip install -r requirements.txt
+> ```
 
 ### 3. 安装前端依赖
 
@@ -51,6 +139,11 @@ pip install -r requirements.txt
 cd ../frontend
 npm install
 ```
+
+> 国内用户如果下载慢，可以使用镜像源：
+> ```bash
+> npm install --registry=https://registry.npmmirror.com
+> ```
 
 ### 4. 配置（可选）
 
