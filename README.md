@@ -193,6 +193,24 @@ npx vite --host 127.0.0.1 --port 5173
 3. 进入「论文管理」→ 导入 PDF 或手动添加论文
 4. 点击论文标题 → 分屏阅读 PDF & 编辑笔记
 
+## 版本更新
+
+当有新版本发布时，运行一键更新脚本即可：
+
+```bash
+cd literature-review-app
+chmod +x update.sh
+./update.sh
+```
+
+更新脚本会自动完成：
+
+1. 拉取最新代码（`git pull`）
+2. 更新后端 Python 依赖（`pip install`）
+3. 更新前端 Node 依赖（`npm install`）
+
+> 如果本地有未提交的修改，脚本会提示是否暂存（`git stash`），更新完成后自动恢复。
+
 ## 技术栈
 
 | 层 | 技术 |
