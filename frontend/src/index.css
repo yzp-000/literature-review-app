@@ -1,0 +1,75 @@
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial,
+    'Noto Sans', sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol',
+    'Noto Color Emoji';
+}
+
+#root {
+  height: 100vh;
+}
+
+.ant-layout {
+  height: 100vh;
+}
+
+.site-layout-content {
+  padding: 24px;
+  background: #fff;
+  min-height: 280px;
+}
+
+.paper-split-view {
+  display: flex;
+  height: calc(100vh - 180px);
+}
+
+.paper-split-view > .split-panel {
+  overflow: auto;
+  min-width: 200px;
+}
+
+.split-handle {
+  width: 6px;
+  cursor: col-resize;
+  background: #e8e8e8;
+  border-radius: 3px;
+  flex-shrink: 0;
+  transition: background 0.2s;
+  position: relative;
+}
+
+.split-handle:hover,
+.split-handle.dragging {
+  background: #1890ff;
+}
+
+.split-handle::after {
+  content: '···';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%) rotate(90deg);
+  font-size: 10px;
+  color: #999;
+  letter-spacing: 1px;
+}
+
+.split-handle:hover::after,
+.split-handle.dragging::after {
+  color: #fff;
+}
+
+.markdown-preview {
+  padding: 16px;
+  border: 1px solid #d9d9d9;
+  border-radius: 6px;
+  overflow: auto;
+}
+
+.markdown-preview h1 { font-size: 1.6em; margin-top: 0; }
+.markdown-preview h2 { font-size: 1.3em; border-bottom: 1px solid #eee; padding-bottom: 4px; }
+.markdown-preview table { border-collapse: collapse; width: 100%; margin: 8px 0; }
+.markdown-preview th, .markdown-preview td { border: 1px solid #d9d9d9; padding: 6px 12px; text-align: left; }
+.markdown-preview th { background: #fafafa; }
+.markdown-preview blockquote { border-left: 4px solid #1890ff; margin: 8px 0; padding: 4px 16px; color: #666; }

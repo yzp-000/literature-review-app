@@ -1,0 +1,43 @@
+# {{ title_zh }}
+
+> **作者**: {{ authors | join(', ') }}
+> **年份**: {{ year }}
+> **期刊/会议**: {{ journal }}
+
+---
+
+## 1. 论文基本信息
+
+| 项目 | 内容 |
+|------|------|
+| 标题(中) | {{ title_zh }} |
+| 标题(英) | {{ title_en }} |
+| 作者 | {{ authors | join(', ') }} |
+| 年份 | {{ year }} |
+| 期刊/会议 | {{ journal }} |
+| DOI | {{ doi }} |
+| 关键词 | {{ keywords | join(', ') }} |
+
+## 2. 研究背景与动机
+
+{{ background | default('（待填写）') }}
+
+## 3. 核心方法与技术路线
+
+{{ methods | default('（待填写）') }}
+
+## 4. 实验设计与结果
+
+{{ experiments | default('（待填写）') }}
+
+## 5. 创新点与贡献
+
+{{ contributions | default('（待填写）') }}
+
+## 6. 局限性与未来工作
+
+{{ limitations | default('（待填写）') }}
+
+## 7. 个人评价与笔记
+
+{{ notes | default('（待填写）') }}
