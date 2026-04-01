@@ -127,15 +127,15 @@ def _generate_paper_note_template(paper: dict) -> str:
 
     title = paper.get("title_zh") or paper.get("title_en") or "未命名"
     authors = ", ".join(paper.get("authors", []))
-    year = str(paper.get("year", ""))
-    journal = paper.get("journal", "")
-    doi = paper.get("doi", "")
-    keywords = ", ".join(paper.get("keywords", []))
+    year = str(paper.get("year") or "")
+    journal = paper.get("journal") or ""
+    doi = paper.get("doi") or ""
+    keywords = ", ".join(paper.get("keywords") or [])
 
     result = template
     result = result.replace("{{title}}", title)
-    result = result.replace("{{title_zh}}", paper.get("title_zh", ""))
-    result = result.replace("{{title_en}}", paper.get("title_en", ""))
+    result = result.replace("{{title_zh}}", paper.get("title_zh") or "")
+    result = result.replace("{{title_en}}", paper.get("title_en") or "")
     result = result.replace("{{authors}}", authors)
     result = result.replace("{{year}}", year)
     result = result.replace("{{journal}}", journal)

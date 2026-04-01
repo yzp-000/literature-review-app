@@ -218,6 +218,10 @@ async def get_note_template():
 
 @router.put("/note_template")
 async def set_note_template(body: NoteTemplateUpdate):
+    """Save a custom note template. Empty content is rejected."""
+    template = body.template.strip()
+    if not template:
+        raise HTTPException(status_code=400, detail="模板内容不能为空，如需恢复默认请使用重置功能")
     config = load_config()
     config["note_template"] = body.template
     save_config(config)

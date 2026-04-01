@@ -120,7 +120,14 @@ export default function SettingsPage() {
   };
 
   const handleImportTemplate = (file: File) => {
+    if (file.size > 1024 * 1024) {
+      message.error('模板文件过大，请选择小于 1MB 的文件');
+      return false;
+    }
     const reader = new FileReader();
+    reader.onerror = () => {
+      message.error('读取文件失败');
+    };
     reader.onload = (e) => {
       const content = e.target?.result as string;
       if (content) {
