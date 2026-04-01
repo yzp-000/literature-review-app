@@ -1,5 +1,5 @@
 import { Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom';
-import { Layout, Menu, Select, Typography, Space } from 'antd';
+import { Layout, Menu, Select, Typography, Space, Badge } from 'antd';
 import {
   FileTextOutlined,
   SearchOutlined,
@@ -12,6 +12,7 @@ import {
 } from '@ant-design/icons';
 import { useEffect } from 'react';
 import { useAppStore } from './stores/useAppStore';
+import { useBackgroundTaskStore } from './stores/useBackgroundTaskStore';
 import WorkspacePage from './pages/WorkspacePage';
 import PapersPage from './pages/PapersPage';
 import PaperDetailPage from './pages/PaperDetailPage';
@@ -31,16 +32,42 @@ function App() {
   const location = useLocation();
   const { workspaces, currentWorkspace, fetchWorkspaces, setCurrentWorkspace } = useAppStore();
 
+  // Subscribe to background task running status for sidebar badges
+  const searchRunning = useBackgroundTaskStore((s) => s.search.status === 'running');
+  const noteGenRunning = useBackgroundTaskStore((s) => s.noteGen.status === 'running');
+  const exportSummaryRunning = useBackgroundTaskStore((s) => s.exportSummary.status === 'running');
+
   useEffect(() => {
     fetchWorkspaces();
   }, []);
 
   const menuItems = [
     { key: '/workspaces', icon: <FolderOutlined />, label: '课题管理' },
-    { key: '/papers', icon: <FileTextOutlined />, label: '论文管理', disabled: !currentWorkspace },
-    { key: '/search', icon: <SearchOutlined />, label: '文献检索', disabled: !currentWorkspace },
+    {
+      key: '/papers',
+      icon: <FileTextOutlined />,
+      label: noteGenRunning
+        ? <Badge status="processing" text="论文管理" />
+        : '论文管理',
+      disabled: !currentWorkspace,
+    },
+    {
+      key: '/search',
+      icon: <SearchOutlined />,
+      label: searchRunning
+        ? <Badge status="processing" text="文献检索" />
+        : '文献检索',
+      disabled: !currentWorkspace,
+    },
     { key: '/graph', icon: <ApartmentOutlined />, label: '关系图谱', disabled: !currentWorkspace },
-    { key: '/export', icon: <ExportOutlined />, label: '导出', disabled: !currentWorkspace },
+    {
+      key: '/export',
+      icon: <ExportOutlined />,
+      label: exportSummaryRunning
+        ? <Badge status="processing" text="导出" />
+        : '导出',
+      disabled: !currentWorkspace,
+    },
     { key: '/writing', icon: <FormOutlined />, label: '论文写作' },
     { key: '/settings', icon: <SettingOutlined />, label: '设置' },
     { key: '/guide', icon: <QuestionCircleOutlined />, label: '使用说明' },

@@ -3,7 +3,8 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { Button, Spin, Typography, Space, Descriptions, message, Empty, Select, Modal, Progress, Tooltip } from 'antd';
 import { ArrowLeftOutlined, SaveOutlined, EditOutlined, EyeOutlined, RobotOutlined, TranslationOutlined } from '@ant-design/icons';
 import { useAppStore } from '../stores/useAppStore';
-import { fileApi, pdfApi, llmApi } from '../api';
+import { useBackgroundTaskStore } from '../stores/useBackgroundTaskStore';
+import { fileApi, pdfApi } from '../api';
 import MarkdownEditor from '../components/MarkdownEditor';
 import MarkdownViewer from '../components/MarkdownViewer';
 import TranslationPopup from '../components/TranslationPopup';
@@ -26,11 +27,18 @@ export default function PaperDetailPage() {
   const [saving, setSaving] = useState(false);
   const [editing, setEditing] = useState(false);
 
-  // AI generation state
-  const [generating, setGenerating] = useState(false);
-  const [generatedContent, setGeneratedContent] = useState('');
+  // AI generation from background store
+  const noteGen = useBackgroundTaskStore((s) => s.noteGen);
+  const startNoteGen = useBackgroundTaskStore((s) => s.startNoteGen);
+  const stopNoteGen = useBackgroundTaskStore((s) => s.stopNoteGen);
+
+  // Derive generating state scoped to this paper
+  const isThisPaper = noteGen.paperId === paperId && noteGen.workspace === currentWorkspace;
+  const generating = noteGen.status === 'running' && isThisPaper;
+  const generatedContent = isThisPaper ? noteGen.generatedContent : '';
+
+  // Preview modal (local UI state)
   const [previewModalOpen, setPreviewModalOpen] = useState(false);
-  const abortRef = useRef<AbortController | null>(null);
 
   // Split pane state
   const [splitPercent, setSplitPercent] = useState(50); // left panel percentage
@@ -84,10 +92,12 @@ export default function PaperDetailPage() {
     }
   }, [paper?.markdown_path, currentWorkspace]);
 
-  // Cleanup abort on unmount
+  // Auto-open preview modal when noteGen completes for this paper
   useEffect(() => {
-    return () => { abortRef.current?.abort(); };
-  }, []);
+    if (isThisPaper && noteGen.status === 'done' && noteGen.generatedContent) {
+      setPreviewModalOpen(true);
+    }
+  }, [noteGen.status, isThisPaper]);
 
   // Track translateEnabled in a ref so the mouseup handler can read the latest value
   const translateEnabledRef = useRef(translateEnabled);
@@ -137,86 +147,23 @@ export default function PaperDetailPage() {
     setSaving(false);
   };
 
-  // ---- AI generate note via SSE ----
-  const handleGenerate = async () => {
+  // ---- AI generate note via background store ----
+  const handleGenerate = () => {
     if (!paper.pdf_path) {
       message.warning('请先为该论文上传 PDF');
       return;
     }
 
-    setGenerating(true);
-    setGeneratedContent('');
-
-    abortRef.current?.abort();
-    const controller = new AbortController();
-    abortRef.current = controller;
-
-    let accumulated = '';
-
-    try {
-      const resp = await fetch(llmApi.generateNoteUrl, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          workspace: currentWorkspace,
-          paper_id: paper.id,
-          max_pdf_pages: 15,
-        }),
-        signal: controller.signal,
-      });
-
-      if (!resp.ok) {
-        const err = await resp.json().catch(() => ({ detail: resp.statusText }));
-        throw new Error(err.detail || '请求失败');
-      }
-
-      const reader = resp.body?.getReader();
-      if (!reader) throw new Error('无法读取响应流');
-
-      const decoder = new TextDecoder();
-      let buffer = '';
-
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-
-        buffer += decoder.decode(value, { stream: true });
-        const lines = buffer.split('\n');
-        buffer = lines.pop() || '';
-
-        for (const line of lines) {
-          if (line.startsWith('data: ')) {
-            const dataStr = line.slice(6).trim();
-            if (!dataStr || dataStr === '{}') continue;
-            try {
-              const data = JSON.parse(dataStr);
-              if (data.content) {
-                accumulated += data.content;
-                setGeneratedContent(accumulated);
-              }
-              if (data.error) {
-                throw new Error(data.error);
-              }
-            } catch (parseErr: any) {
-              if (parseErr.message && !parseErr.message.includes('JSON'))
-                throw parseErr;
-            }
-          }
-        }
-      }
-
-      setPreviewModalOpen(true);
-    } catch (e: any) {
-      if (e.name !== 'AbortError') {
-        message.error('AI 生成失败: ' + (e.message || ''));
-      }
-    }
-    setGenerating(false);
+    startNoteGen({
+      workspace: currentWorkspace,
+      paperId: paper.id,
+      pdfPath: paper.pdf_path,
+      maxPdfPages: 15,
+    });
   };
 
   const handleStopGenerate = () => {
-    abortRef.current?.abort();
-    setGenerating(false);
+    stopNoteGen();
     if (generatedContent) {
       setPreviewModalOpen(true);
     }

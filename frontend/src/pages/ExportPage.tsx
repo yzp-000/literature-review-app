@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Typography, Card, Button, Space, Checkbox, message, Empty,
   Switch, Divider, Tag, Tooltip, Input, Alert,
@@ -8,6 +8,7 @@ import {
   RobotOutlined, LoadingOutlined, DeleteOutlined,
 } from '@ant-design/icons';
 import { useAppStore } from '../stores/useAppStore';
+import { useBackgroundTaskStore } from '../stores/useBackgroundTaskStore';
 import { exportApi } from '../api';
 import MarkdownViewer from '../components/MarkdownViewer';
 
@@ -27,12 +28,21 @@ export default function ExportPage() {
   const [includeCover, setIncludeCover] = useState(true);
   const [includeToc, setIncludeToc] = useState(true);
 
-  // AI summary
+  // AI summary from background store
+  const exportSummary = useBackgroundTaskStore((s) => s.exportSummary);
+  const startExportSummary = useBackgroundTaskStore((s) => s.startExportSummary);
+  const stopExportSummary = useBackgroundTaskStore((s) => s.stopExportSummary);
+  const resetExportSummary = useBackgroundTaskStore((s) => s.resetExportSummary);
+  const setExportSummaryContent = useBackgroundTaskStore((s) => s.setExportSummaryContent);
+
+  // Derive state scoped to current workspace
+  const isCurrentWorkspace = exportSummary.workspace === currentWorkspace;
+  const generating = exportSummary.status === 'running' && isCurrentWorkspace;
+  const aiSummary = isCurrentWorkspace ? exportSummary.aiSummary : '';
+
+  // Local UI state
   const [includeAiSummary, setIncludeAiSummary] = useState(false);
-  const [aiSummary, setAiSummary] = useState('');
-  const [generating, setGenerating] = useState(false);
   const [showPreview, setShowPreview] = useState(true);
-  const abortRef = useRef<AbortController | null>(null);
 
   useEffect(() => {
     if (currentWorkspace && !papers.length) fetchPapers();
@@ -42,9 +52,12 @@ export default function ExportPage() {
     setSelectedPapers([]);
   }, [currentWorkspace]);
 
+  // Auto-enable includeAiSummary when generation completes
   useEffect(() => {
-    return () => { abortRef.current?.abort(); };
-  }, []);
+    if (isCurrentWorkspace && exportSummary.status === 'done' && exportSummary.aiSummary) {
+      setIncludeAiSummary(true);
+    }
+  }, [exportSummary.status, isCurrentWorkspace]);
 
   if (!currentWorkspace) return <Empty description="请先选择一个课题" />;
 
@@ -56,84 +69,21 @@ export default function ExportPage() {
     }
   };
 
-  // ---- AI summary generation via SSE ----
-  const handleGenerateSummary = async () => {
-    setGenerating(true);
-    setAiSummary('');
+  // ---- AI summary generation via background store ----
+  const handleGenerateSummary = () => {
     setShowPreview(true);
-
-    abortRef.current?.abort();
-    const controller = new AbortController();
-    abortRef.current = controller;
-
-    let accumulated = '';
-
-    try {
-      const resp = await fetch(exportApi.aiSummaryUrl(currentWorkspace), {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          paper_ids: selectedPapers.length ? selectedPapers : [],
-        }),
-        signal: controller.signal,
-      });
-
-      if (!resp.ok) {
-        const err = await resp.json().catch(() => ({ detail: resp.statusText }));
-        throw new Error(err.detail || '请求失败');
-      }
-
-      const reader = resp.body?.getReader();
-      if (!reader) throw new Error('无法读取响应流');
-
-      const decoder = new TextDecoder();
-      let buffer = '';
-
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-
-        buffer += decoder.decode(value, { stream: true });
-        const lines = buffer.split('\n');
-        buffer = lines.pop() || '';
-
-        for (const line of lines) {
-          if (line.startsWith('data: ')) {
-            const dataStr = line.slice(6).trim();
-            if (!dataStr || dataStr === '{}') continue;
-            try {
-              const data = JSON.parse(dataStr);
-              if (data.content) {
-                accumulated += data.content;
-                setAiSummary(accumulated);
-              }
-              if (data.error) {
-                throw new Error(data.error);
-              }
-            } catch (parseErr: any) {
-              if (parseErr.message && !parseErr.message.includes('JSON'))
-                throw parseErr;
-            }
-          }
-        }
-      }
-
-      message.success('AI 综合总结生成完成');
-    } catch (e: any) {
-      if (e.name !== 'AbortError') {
-        message.error('生成失败: ' + (e.message || ''));
-      }
-    }
-    setGenerating(false);
+    startExportSummary({
+      workspace: currentWorkspace,
+      paperIds: selectedPapers.length ? selectedPapers : [],
+    });
   };
 
   const handleStopGenerate = () => {
-    abortRef.current?.abort();
-    setGenerating(false);
+    stopExportSummary();
   };
 
   const handleClearSummary = () => {
-    setAiSummary('');
+    resetExportSummary();
     setIncludeAiSummary(false);
   };
 
@@ -318,7 +268,7 @@ export default function ExportPage() {
             ) : (
               <TextArea
                 value={aiSummary}
-                onChange={(e) => setAiSummary(e.target.value)}
+                onChange={(e) => setExportSummaryContent(e.target.value)}
                 autoSize={{ minRows: 8, maxRows: 20 }}
                 style={{ fontFamily: 'monospace', fontSize: 12 }}
               />

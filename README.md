@@ -10,10 +10,10 @@
 - **论文管理** — PDF 导入自动解析元数据、手动添加、编辑论文信息、搜索筛选、列显示配置
 - **分屏阅读** — 左侧 PDF（react-pdf 渲染，支持文字选中）右侧 Markdown 笔记，可拖拽调节比例，支持 LaTeX 公式渲染
 - **划词翻译** — PDF 和笔记区域均可划词翻译，选中英文即弹出翻译小窗，流式显示中文结果
-- **AI 生成笔记** — 基于 PDF 内容自动生成 7 节结构化论文笔记（流式输出）
-- **文献检索** — AI 推荐论文 → CrossRef 验证 → 自动下载 PDF → 导入文献库 → 可选自动生成笔记
+- **AI 生成笔记** — 基于 PDF 内容自动生成 7 节结构化论文笔记（流式输出，后台运行不中断）
+- **文献检索** — AI 推荐论文 → CrossRef 验证 → 自动下载 PDF → 导入文献库 → 可选自动生成笔记（后台运行，切换页面不中断）
 - **关系图谱** — 力导向交互式图谱，可视化论文引用/关联/对比等关系，支持添加/删除
-- **导出报告** — 导出为 PDF，支持 AI 综合文献总结放在报告最前面
+- **导出报告** — 导出为 PDF，支持 AI 综合文献总结放在报告最前面（AI 总结后台生成，切换页面不丢失）
 - **论文写作** — AI 辅助 LaTeX 论文写作：CodeMirror 6 编辑器 + latex.js 实时预览 + xelatex PDF 编译，支持 AI 续写/润色/生成章节/对话
 - **多 LLM 支持** — 兼容任何 OpenAI 格式 API（DeepSeek、OpenAI、Claude 等）
 
@@ -277,6 +277,7 @@ literature-review-app/
         ├── App.tsx              # 路由 & 布局
         ├── api/index.ts         # API 客户端
         ├── stores/useAppStore.ts # Zustand 全局状态
+        │   └── useBackgroundTaskStore.ts # SSE 后台任务状态（检索/笔记生成/导出总结）
         ├── pages/               # 页面组件
         │   ├── WorkspacePage    # 课题管理 & 概览
         │   ├── PapersPage       # 论文列表

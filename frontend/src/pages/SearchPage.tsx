@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import {
   Input, Button, Card, Space, Select, Typography, Empty, Tag, message,
   Form, InputNumber, Table, Progress, Collapse, Popconfirm, Divider, Tooltip, Steps, Switch,
@@ -9,6 +9,7 @@ import {
   StopOutlined, FileTextOutlined,
 } from '@ant-design/icons';
 import { useAppStore } from '../stores/useAppStore';
+import { useBackgroundTaskStore } from '../stores/useBackgroundTaskStore';
 import { searchApi, settingsApi } from '../api';
 
 const { Title, Text, Paragraph } = Typography;
@@ -70,15 +71,21 @@ export default function SearchPage() {
   const [providers, setProviders] = useState<any[]>([]);
   const [selectedProvider, setSelectedProvider] = useState<string | undefined>();
 
-  // Search state
-  const [searching, setSearching] = useState(false);
-  const [currentStage, setCurrentStage] = useState('');
-  const [stageMessage, setStageMessage] = useState('');
-  const [progressCurrent, setProgressCurrent] = useState(0);
-  const [progressTotal, setProgressTotal] = useState(0);
-  const [results, setResults] = useState<SearchResult[] | null>(null);
-  const [stats, setStats] = useState<{ total: number; verified: number; has_pdf: number; notes_generated?: number } | null>(null);
-  const abortRef = useRef<AbortController | null>(null);
+  // Subscribe to background search task
+  const search = useBackgroundTaskStore((s) => s.search);
+  const startSearch = useBackgroundTaskStore((s) => s.startSearch);
+  const stopSearch = useBackgroundTaskStore((s) => s.stopSearch);
+  const resetSearch = useBackgroundTaskStore((s) => s.resetSearch);
+
+  // Derive searching state, scoped to current workspace
+  const isCurrentWorkspace = search.workspace === currentWorkspace;
+  const searching = search.status === 'running' && isCurrentWorkspace;
+  const currentStage = isCurrentWorkspace ? search.currentStage : '';
+  const stageMessage = isCurrentWorkspace ? search.stageMessage : '';
+  const progressCurrent = isCurrentWorkspace ? search.progressCurrent : 0;
+  const progressTotal = isCurrentWorkspace ? search.progressTotal : 0;
+  const results = isCurrentWorkspace ? search.results : null;
+  const stats = isCurrentWorkspace ? search.stats : null;
 
   // History
   const [history, setHistory] = useState<HistoryRecord[]>([]);
@@ -104,10 +111,13 @@ export default function SearchPage() {
     if (currentWorkspace) fetchHistory();
   }, [currentWorkspace, fetchHistory]);
 
-  // Cleanup abort on unmount
+  // When search completes, refresh history & papers
   useEffect(() => {
-    return () => { abortRef.current?.abort(); };
-  }, []);
+    if (isCurrentWorkspace && (search.status === 'done' || search.status === 'error')) {
+      fetchHistory();
+      fetchPapers();
+    }
+  }, [search.status, isCurrentWorkspace]);
 
   if (!currentWorkspace) {
     return <Empty description="请先选择一个课题" />;
@@ -120,100 +130,20 @@ export default function SearchPage() {
     } catch { return; }
 
     const values = form.getFieldsValue();
-    setSearching(true);
-    setCurrentStage('llm');
-    setStageMessage('正在启动 AI 检索...');
-    setProgressCurrent(0);
-    setProgressTotal(0);
-    setResults(null);
-    setStats(null);
-
-    abortRef.current?.abort();
-    const controller = new AbortController();
-    abortRef.current = controller;
-
-    try {
-      const resp = await fetch(searchApi.startUrl, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          workspace: currentWorkspace,
-          direction: values.direction,
-          paper_count: values.paper_count || 10,
-          year_start: values.year_start || null,
-          year_end: values.year_end || null,
-          extra_requirements: values.extra_requirements || '',
-          provider_id: selectedProvider || null,
-          auto_import: true,
-          auto_generate_notes: values.auto_generate_notes || false,
-        }),
-        signal: controller.signal,
-      });
-
-      if (!resp.ok) {
-        const err = await resp.json().catch(() => ({ detail: resp.statusText }));
-        throw new Error(err.detail || '请求失败');
-      }
-
-      const reader = resp.body?.getReader();
-      if (!reader) throw new Error('无法读取响应流');
-      const decoder = new TextDecoder();
-      let buffer = '';
-
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        buffer += decoder.decode(value, { stream: true });
-        const lines = buffer.split('\n');
-        buffer = lines.pop() || '';
-
-        for (const line of lines) {
-          if (line.startsWith('data: ')) {
-            const dataStr = line.slice(6).trim();
-            if (!dataStr || dataStr === '{}') continue;
-            try {
-              const data = JSON.parse(dataStr);
-              handleSSEUpdate(data);
-            } catch { /* ignore parse errors */ }
-          }
-        }
-      }
-    } catch (e: any) {
-      if (e.name !== 'AbortError') {
-        message.error('检索失败: ' + (e.message || ''));
-      }
-    }
-    setSearching(false);
-    fetchHistory();
-    fetchPapers();
-  };
-
-  const handleSSEUpdate = (data: any) => {
-    const { stage } = data;
-    if (!stage) return;
-
-    setCurrentStage(stage);
-
-    if (data.message) {
-      setStageMessage(data.message);
-    }
-    if (data.current && data.total) {
-      setProgressCurrent(data.current);
-      setProgressTotal(data.total);
-    }
-    if (stage === 'done') {
-      setResults(data.results || []);
-      setStats(data.stats || null);
-      message.success(`检索完成：共 ${data.stats?.total || 0} 篇论文`);
-    }
-    if (stage === 'error') {
-      message.error(data.message || '检索出错');
-    }
+    startSearch({
+      workspace: currentWorkspace,
+      direction: values.direction,
+      paper_count: values.paper_count || 10,
+      year_start: values.year_start || null,
+      year_end: values.year_end || null,
+      extra_requirements: values.extra_requirements || '',
+      provider_id: selectedProvider || null,
+      auto_generate_notes: values.auto_generate_notes || false,
+    });
   };
 
   const handleStop = () => {
-    abortRef.current?.abort();
-    setSearching(false);
+    stopSearch();
   };
 
   const handleDeleteHistory = async (id: string) => {
