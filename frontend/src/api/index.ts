@@ -59,6 +59,7 @@ export const llmApi = {
     api.post('/llm/chat', { messages, provider_id: providerId, stream: false }).then(r => r.data),
   streamUrl: '/api/llm/chat',
   generateNoteUrl: '/api/llm/generate_note',
+  translateUrl: '/api/llm/translate',
 };
 
 // ============ Graph ============
@@ -108,6 +109,28 @@ export const searchApi = {
     api.get(`/search/history/${searchId}`, { params: { workspace } }).then(r => r.data),
   deleteHistory: (workspace: string, searchId: string) =>
     api.delete(`/search/history/${searchId}`, { params: { workspace } }).then(r => r.data),
+};
+
+// ============ Writing ============
+export const writingApi = {
+  list: () => api.get('/writing/projects').then(r => r.data),
+  get: (name: string) => api.get(`/writing/projects/${encodeURIComponent(name)}`).then(r => r.data),
+  create: (name: string, template = 'default') =>
+    api.post('/writing/projects', { name, template }).then(r => r.data),
+  delete: (name: string) => api.delete(`/writing/projects/${encodeURIComponent(name)}`).then(r => r.data),
+  listFiles: (name: string) =>
+    api.get(`/writing/projects/${encodeURIComponent(name)}/files`).then(r => r.data),
+  readFile: (name: string, path: string) =>
+    api.get(`/writing/projects/${encodeURIComponent(name)}/files/read`, { params: { path } }).then(r => r.data),
+  writeFile: (name: string, path: string, content: string) =>
+    api.post(`/writing/projects/${encodeURIComponent(name)}/files/write`, { content }, { params: { path } }).then(r => r.data),
+  compile: (name: string) =>
+    api.post(`/writing/projects/${encodeURIComponent(name)}/compile`, {}, { timeout: 130000 }).then(r => r.data),
+  pdfUrl: (name: string) => `/api/writing/projects/${encodeURIComponent(name)}/pdf`,
+  aiContinueUrl: '/api/writing/ai/continue',
+  aiPolishUrl: '/api/writing/ai/polish',
+  aiGenerateSectionUrl: '/api/writing/ai/generate_section',
+  aiChatUrl: '/api/writing/ai/chat',
 };
 
 export default api;

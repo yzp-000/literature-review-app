@@ -38,6 +38,41 @@ async def chat(body: ChatRequest):
             raise HTTPException(status_code=500, detail=str(e))
 
 
+class TranslateRequest(BaseModel):
+    text: str
+    source_lang: str = "en"
+    target_lang: str = "zh"
+    provider_id: Optional[str] = None
+
+
+@router.post("/translate")
+async def translate(body: TranslateRequest):
+    """Translate selected text via LLM. Returns SSE stream."""
+    text = body.text[:3000]
+    if not text.strip():
+        raise HTTPException(status_code=400, detail="文本不能为空")
+
+    system_prompt = (
+        f"你是一个专业的学术翻译助手。请将以下{body.source_lang}文本翻译为{body.target_lang}。"
+        "要求：翻译准确、通顺，保留学术术语的专业性。只输出翻译结果，不要添加任何解释。"
+    )
+    messages = [
+        {"role": "system", "content": system_prompt},
+        {"role": "user", "content": text},
+    ]
+
+    async def event_generator():
+        try:
+            async for chunk in llm_service.chat_stream(messages, body.provider_id):
+                yield {"event": "message", "data": json.dumps({"content": chunk})}
+            yield {"event": "done", "data": "{}"}
+        except Exception as e:
+            logger.error("translate failed: %s", e)
+            yield {"event": "error", "data": json.dumps({"error": str(e)})}
+
+    return EventSourceResponse(event_generator())
+
+
 class GenerateNoteRequest(BaseModel):
     workspace: str
     paper_id: str

@@ -8,6 +8,7 @@ import {
   SettingOutlined,
   FolderOutlined,
   QuestionCircleOutlined,
+  FormOutlined,
 } from '@ant-design/icons';
 import { useEffect } from 'react';
 import { useAppStore } from './stores/useAppStore';
@@ -19,6 +20,8 @@ import GraphPage from './pages/GraphPage';
 import ExportPage from './pages/ExportPage';
 import SettingsPage from './pages/SettingsPage';
 import GuidePage from './pages/GuidePage';
+import WritingListPage from './pages/WritingListPage';
+import WritingPage from './pages/WritingPage';
 
 const { Header, Sider, Content } = Layout;
 const { Title } = Typography;
@@ -38,11 +41,13 @@ function App() {
     { key: '/search', icon: <SearchOutlined />, label: '文献检索', disabled: !currentWorkspace },
     { key: '/graph', icon: <ApartmentOutlined />, label: '关系图谱', disabled: !currentWorkspace },
     { key: '/export', icon: <ExportOutlined />, label: '导出', disabled: !currentWorkspace },
+    { key: '/writing', icon: <FormOutlined />, label: '论文写作' },
     { key: '/settings', icon: <SettingOutlined />, label: '设置' },
     { key: '/guide', icon: <QuestionCircleOutlined />, label: '使用说明' },
   ];
 
   const selectedKey = '/' + location.pathname.split('/')[1];
+  const isWritingEditor = location.pathname.match(/^\/writing\/[^/]+$/);
 
   return (
     <Layout>
@@ -73,7 +78,12 @@ function App() {
         />
       </Sider>
       <Layout>
-        <Content style={{ padding: '16px', overflow: 'auto', background: '#f5f5f5', height: '100vh' }}>
+        <Content style={{
+          padding: isWritingEditor ? 0 : '16px',
+          overflow: isWritingEditor ? 'hidden' : 'auto',
+          background: '#f5f5f5',
+          height: '100vh',
+        }}>
           <Routes>
             <Route path="/workspaces" element={<WorkspacePage />} />
             <Route path="/papers" element={<PapersPage />} />
@@ -81,6 +91,8 @@ function App() {
             <Route path="/search" element={<SearchPage />} />
             <Route path="/graph" element={<GraphPage />} />
             <Route path="/export" element={<ExportPage />} />
+            <Route path="/writing" element={<WritingListPage />} />
+            <Route path="/writing/:projectName" element={<WritingPage />} />
             <Route path="/settings" element={<SettingsPage />} />
             <Route path="/guide" element={<GuidePage />} />
             <Route path="*" element={<Navigate to="/workspaces" replace />} />

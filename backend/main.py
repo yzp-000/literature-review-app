@@ -9,7 +9,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
-from api import workspace, papers, files, pdf, llm, graph, export, settings, search
+from api import workspace, papers, files, pdf, llm, graph, export, settings, search, writing
 
 app = FastAPI(
     title="文献调研管理系统",
@@ -36,6 +36,7 @@ app.include_router(graph.router)
 app.include_router(export.router)
 app.include_router(settings.router)
 app.include_router(search.router)
+app.include_router(writing.router)
 
 
 @app.get("/api/health")

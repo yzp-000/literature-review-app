@@ -39,6 +39,10 @@ export default function ExportPage() {
   }, [currentWorkspace]);
 
   useEffect(() => {
+    setSelectedPapers([]);
+  }, [currentWorkspace]);
+
+  useEffect(() => {
     return () => { abortRef.current?.abort(); };
   }, []);
 
@@ -165,7 +169,6 @@ export default function ExportPage() {
   };
 
   const withNotes = papers.filter(p => p.markdown_path);
-  const selectedCount = selectedPapers.length || papers.length;
 
   return (
     <div style={{ maxWidth: 800, margin: '0 auto' }}>
@@ -341,7 +344,7 @@ export default function ExportPage() {
           onClick={() => doExport(true)}
           disabled={generating}
         >
-          导出 PDF ({selectedCount} 篇)
+          导出 PDF ({selectedPapers.length ? `${selectedPapers.length} 篇` : `全部 ${papers.length} 篇`})
         </Button>
         <Button
           icon={<PrinterOutlined />}

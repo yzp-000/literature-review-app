@@ -1,11 +1,13 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Button, Spin, Typography, Space, Descriptions, message, Empty, Select, Modal, Progress, Tooltip } from 'antd';
-import { ArrowLeftOutlined, SaveOutlined, EditOutlined, EyeOutlined, RobotOutlined, ColumnWidthOutlined } from '@ant-design/icons';
+import { ArrowLeftOutlined, SaveOutlined, EditOutlined, EyeOutlined, RobotOutlined, TranslationOutlined } from '@ant-design/icons';
 import { useAppStore } from '../stores/useAppStore';
 import { fileApi, pdfApi, llmApi } from '../api';
 import MarkdownEditor from '../components/MarkdownEditor';
 import MarkdownViewer from '../components/MarkdownViewer';
+import TranslationPopup from '../components/TranslationPopup';
+import PdfViewer from '../components/PdfViewer';
 
 const { Title, Text } = Typography;
 
@@ -34,6 +36,12 @@ export default function PaperDetailPage() {
   const [splitPercent, setSplitPercent] = useState(50); // left panel percentage
   const [dragging, setDragging] = useState(false);
   const splitContainerRef = useRef<HTMLDivElement | null>(null);
+
+  // Translation state
+  const [translateEnabled, setTranslateEnabled] = useState(false);
+  const [selectedText, setSelectedText] = useState('');
+  const [popupPosition, setPopupPosition] = useState<{ x: number; y: number } | null>(null);
+  const [showPopup, setShowPopup] = useState(false);
 
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
     e.preventDefault();
@@ -79,6 +87,39 @@ export default function PaperDetailPage() {
   // Cleanup abort on unmount
   useEffect(() => {
     return () => { abortRef.current?.abort(); };
+  }, []);
+
+  // Track translateEnabled in a ref so the mouseup handler can read the latest value
+  const translateEnabledRef = useRef(translateEnabled);
+  useEffect(() => { translateEnabledRef.current = translateEnabled; }, [translateEnabled]);
+
+  // Translation: listen for text selection
+  useEffect(() => {
+    if (!translateEnabled) return;
+    const handler = (e: MouseEvent) => {
+      // Small delay to let selection finalize
+      setTimeout(() => {
+        // Re-check: user may have toggled off translation between mouseup and this callback
+        if (!translateEnabledRef.current) return;
+        const sel = window.getSelection();
+        const text = sel?.toString().trim() || '';
+        if (text.length > 1) {
+          setSelectedText(text);
+          setPopupPosition({ x: e.clientX, y: e.clientY });
+          setShowPopup(true);
+        }
+      }, 10);
+    };
+    document.addEventListener('mouseup', handler);
+    return () => document.removeEventListener('mouseup', handler);
+  }, [translateEnabled]);
+
+  const handleTranslationClose = useCallback(() => {
+    setShowPopup(false);
+    setSelectedText('');
+    setPopupPosition(null);
+    // Clear browser selection so stale text won't re-trigger the popup
+    window.getSelection()?.removeAllRanges();
   }, []);
 
   if (!currentWorkspace) return <Empty description="请先选择课题" />;
@@ -275,6 +316,16 @@ ${generatedContent}
           <Tooltip title="笔记为主">
             <Button size="small" type={splitPercent < 40 ? 'primary' : 'default'} onClick={() => setSplitPercent(30)}>3:7</Button>
           </Tooltip>
+          <Tooltip title={translateEnabled ? '关闭划词翻译' : '开启划词翻译'}>
+            <Button
+              size="small"
+              type={translateEnabled ? 'primary' : 'default'}
+              icon={<TranslationOutlined />}
+              onClick={() => { setTranslateEnabled(e => !e); handleTranslationClose(); }}
+            >
+              划词翻译
+            </Button>
+          </Tooltip>
         </Space>
       </div>
 
@@ -308,11 +359,7 @@ ${generatedContent}
           style={{ width: `${splitPercent}%`, background: '#fff', borderRadius: 8, padding: 8 }}
         >
           {pdfUrl ? (
-            <iframe
-              src={pdfUrl}
-              style={{ width: '100%', height: '100%', border: 'none', borderRadius: 4, pointerEvents: dragging ? 'none' : 'auto' }}
-              title="PDF Preview"
-            />
+            <PdfViewer url={pdfUrl} dragging={dragging} />
           ) : (
             <Empty description="暂无 PDF，请在论文列表中上传" style={{ marginTop: 100 }} />
           )}
@@ -410,6 +457,15 @@ ${generatedContent}
           <MarkdownViewer content={generatedContent || '暂无内容'} />
         </div>
       </Modal>
+
+      {/* ===== Translation Popup ===== */}
+      {showPopup && selectedText && popupPosition && (
+        <TranslationPopup
+          text={selectedText}
+          position={popupPosition}
+          onClose={handleTranslationClose}
+        />
+      )}
     </div>
   );
 }

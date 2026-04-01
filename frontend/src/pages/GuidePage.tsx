@@ -13,6 +13,7 @@ import {
   RobotOutlined,
   FilePdfOutlined,
   ColumnWidthOutlined,
+  FormOutlined,
 } from '@ant-design/icons';
 
 const { Title, Paragraph, Text } = Typography;
@@ -45,6 +46,10 @@ const steps = [
   {
     title: '导出报告',
     description: '在「导出」页选择论文，可选生成 AI 综合总结，然后导出为 PDF 格式的调研报告。',
+  },
+  {
+    title: '论文写作',
+    description: '在「论文写作」页创建写作项目，使用 LaTeX 编辑器撰写论文。支持 AI 续写、润色、生成章节，以及实时预览和 PDF 编译。',
   },
 ];
 
@@ -96,9 +101,10 @@ const featurePanels = [
       <div>
         <Paragraph>点击论文标题进入详情页，采用可调节的左右分屏布局。</Paragraph>
         <ul>
-          <li><Text strong>左侧 — PDF 预览</Text>：嵌入式 PDF 阅读器，支持翻页、缩放、搜索。需先为该论文上传 PDF。</li>
+          <li><Text strong>左侧 — PDF 预览</Text>：基于 react-pdf 渲染的 PDF 阅读器，文字直接渲染在页面 DOM 中，支持选中复制。需先为该论文上传 PDF。</li>
           <li><Text strong>右侧 — 笔记编辑</Text>：7 节结构化笔记。可在「预览」和「编辑」模式间切换，编辑模式下使用 Markdown 编辑器。支持数学公式渲染（LaTeX 语法）。</li>
           <li><Text strong>分屏比例调节</Text>：可通过顶部的 7:3 / 5:5 / 3:7 按钮快速切换，也可拖拽中间分隔条自由调整 PDF 和笔记的宽度比例。</li>
+          <li><Text strong>划词翻译</Text>：点击顶部「划词翻译」按钮开启后，在 PDF 或笔记区域选中英文文本即可弹出翻译小窗，流式显示中文翻译结果。再次点击按钮可关闭。</li>
           <li><Text strong>AI 生成总结</Text>：点击「AI 生成总结」按钮，AI 会根据 PDF 内容自动生成 2~7 节笔记。生成完成后可选择「智能合并」（保留第 1 节，替换 2~7 节）或「重新生成全部笔记」。</li>
           <li>顶部显示论文元数据（作者、年份、期刊、DOI 链接等），可直接修改阅读状态。</li>
           <li>编辑后点击「保存」按钮将内容写入对应的 Markdown 文件。</li>
@@ -188,6 +194,29 @@ const featurePanels = [
           <li><Text strong>导出 PDF</Text>：点击「导出 PDF」按钮后浏览器会打开打印预览窗口，在打印对话框中目标选择「另存为 PDF / Save as PDF」即可保存。</li>
           <li><Text strong>预览 HTML</Text>：先在新窗口中查看渲染效果，确认无误后再导出。</li>
           <li>建议使用 Chrome 或 Edge 浏览器获得最佳导出效果。</li>
+        </ul>
+      </div>
+    ),
+  },
+  {
+    key: 'writing',
+    label: (
+      <span><FormOutlined style={{ marginRight: 8 }} />论文写作</span>
+    ),
+    children: (
+      <div>
+        <Paragraph>AI 辅助的 LaTeX 论文写作环境，支持实时预览和 PDF 编译。</Paragraph>
+        <ul>
+          <li><Text strong>写作项目</Text>：独立于课题管理，每个写作项目对应一个 <Text code>[项目名]_论文写作/</Text> 文件夹。支持「标准论文模板」（含 ctex 中文支持）和「空白模板」。</li>
+          <li><Text strong>LaTeX 编辑器</Text>：基于 CodeMirror 6 的专业 LaTeX 编辑器，支持语法高亮、行号、括号匹配、搜索替换。快捷键 <Text code>Ctrl+S</Text> 保存。</li>
+          <li><Text strong>实时预览</Text>：基于 latex.js 的前端实时渲染预览（部分 LaTeX 宏包如 ctex、tikz 不支持，建议使用 PDF 编译查看完整效果）。</li>
+          <li><Text strong>PDF 编译</Text>：通过后端 xelatex 编译生成 PDF，支持中文排版。编译运行两遍以处理交叉引用。需服务器安装 <Text code>texlive-xetex</Text> 和 <Text code>texlive-lang-chinese</Text>。</li>
+          <li><Text strong>AI 续写</Text>：将光标放在想要续写的位置，点击「AI续写」，AI 会根据上下文自动续写论文内容，流式插入到编辑器中。</li>
+          <li><Text strong>AI 润色</Text>：选中需要润色的文本，点击「AI润色」，AI 会对选中文本进行学术润色并替换。</li>
+          <li><Text strong>AI 生成章节</Text>：点击「AI生成章节」输入章节标题和写作要点，AI 会在光标位置生成完整的章节内容。</li>
+          <li><Text strong>AI 对话面板</Text>：点击右上角对话图标打开侧边 AI 对话面板，可以咨询论文结构、写作方法、LaTeX 语法等问题。AI 回复可一键插入编辑器。</li>
+          <li><Text strong>分屏拖拽</Text>：编辑器和预览区之间支持拖拽调整宽度比例。</li>
+          <li><Text strong>未保存提示</Text>：有未保存更改时页面顶部显示提醒，关闭页面前会弹出确认。</li>
         </ul>
       </div>
     ),
@@ -353,8 +382,14 @@ export default function GuidePage() {
 │   └── 02_关键技术总结/
 │       └── 01_[主题].md
 │
-└── [课题B]_文献调研/                 # 另一个课题
-    └── ...`}
+├── [课题B]_文献调研/                 # 另一个课题
+│   └── ...
+│
+└── [项目名]_论文写作/                # 论文写作项目
+    ├── writing.json                # 项目元数据
+    ├── main.tex                    # 主 LaTeX 文件
+    └── output/                     # 编译输出目录
+        └── main.pdf                # 编译生成的 PDF`}
         </pre>
       </Card>
     </div>

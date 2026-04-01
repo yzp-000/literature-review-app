@@ -132,3 +132,43 @@ class ExportRequest(BaseModel):
     include_cover: bool = True
     include_toc: bool = True
     ai_summary: str = ""
+
+
+# ============ Writing ============
+
+class WritingProjectCreate(BaseModel):
+    name: str
+    template: str = "default"  # "default" | "blank"
+
+
+class WritingFileWrite(BaseModel):
+    content: str
+
+
+class WritingAIContinueRequest(BaseModel):
+    project: str
+    context_before: str
+    context_after: str = ""
+    provider_id: Optional[str] = None
+
+
+class WritingAIPolishRequest(BaseModel):
+    project: str
+    selected_text: str
+    instruction: str = ""
+    provider_id: Optional[str] = None
+
+
+class WritingAIGenerateSectionRequest(BaseModel):
+    project: str
+    section_title: str
+    notes: str = ""
+    existing_content: str = ""
+    provider_id: Optional[str] = None
+
+
+class WritingAIChatRequest(BaseModel):
+    project: str
+    messages: list[ChatMessage]
+    paper_context: str = ""
+    provider_id: Optional[str] = None

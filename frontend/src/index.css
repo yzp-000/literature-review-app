@@ -60,6 +60,10 @@ body {
   color: #fff;
 }
 
+.react-pdf__Page {
+  margin-bottom: 8px;
+}
+
 .markdown-preview {
   padding: 16px;
   border: 1px solid #d9d9d9;
@@ -73,3 +77,187 @@ body {
 .markdown-preview th, .markdown-preview td { border: 1px solid #d9d9d9; padding: 6px 12px; text-align: left; }
 .markdown-preview th { background: #fafafa; }
 .markdown-preview blockquote { border-left: 4px solid #1890ff; margin: 8px 0; padding: 4px 16px; color: #666; }
+
+/* ===== Translation Popup ===== */
+.translation-popup {
+  position: fixed;
+  z-index: 1050;
+  width: 380px;
+  max-height: 320px;
+  background: #fff;
+  border-radius: 8px;
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.15);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.translation-popup-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 12px;
+  background: #f5f5f5;
+  font-weight: 600;
+  font-size: 13px;
+  color: #333;
+  border-bottom: 1px solid #e8e8e8;
+}
+
+.translation-popup-close {
+  cursor: pointer;
+  color: #999;
+  font-size: 12px;
+}
+.translation-popup-close:hover {
+  color: #333;
+}
+
+.translation-popup-source {
+  padding: 8px 12px;
+  font-size: 12px;
+  color: #888;
+  line-height: 1.5;
+  max-height: 60px;
+  overflow: auto;
+}
+
+.translation-popup-divider {
+  height: 1px;
+  background: #e8e8e8;
+  margin: 0 12px;
+}
+
+.translation-popup-result {
+  padding: 10px 12px;
+  font-size: 14px;
+  color: #222;
+  line-height: 1.6;
+  overflow: auto;
+  flex: 1;
+  white-space: pre-wrap;
+}
+
+.translation-cursor {
+  display: inline-block;
+  width: 2px;
+  height: 1em;
+  background: #1890ff;
+  margin-left: 2px;
+  vertical-align: text-bottom;
+  animation: translation-blink 0.8s step-end infinite;
+}
+
+@keyframes translation-blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
+
+/* ===== Writing Page ===== */
+.writing-page {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  overflow: hidden;
+}
+
+.writing-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 6px 12px;
+  background: #fff;
+  border-bottom: 1px solid #e8e8e8;
+  flex-shrink: 0;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.writing-split-view {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+}
+
+.writing-split-view > .split-panel {
+  overflow: auto;
+  min-width: 200px;
+}
+
+.writing-statusbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 2px 12px;
+  background: #fafafa;
+  border-top: 1px solid #e8e8e8;
+  flex-shrink: 0;
+}
+
+.writing-compile-log {
+  background: #1e1e1e;
+  color: #d4d4d4;
+  padding: 12px;
+  border-radius: 6px;
+  font-size: 12px;
+  line-height: 1.6;
+  max-height: 400px;
+  overflow: auto;
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+
+/* Chat bubbles */
+.writing-chat-bubble {
+  margin-bottom: 12px;
+  max-width: 90%;
+}
+
+.writing-chat-bubble.user {
+  margin-left: auto;
+}
+
+.writing-chat-bubble.assistant {
+  margin-right: auto;
+}
+
+.writing-chat-bubble-content {
+  padding: 8px 12px;
+  border-radius: 8px;
+  font-size: 13px;
+  line-height: 1.6;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.writing-chat-bubble.user .writing-chat-bubble-content {
+  background: #1890ff;
+  color: #fff;
+  border-bottom-right-radius: 2px;
+}
+
+.writing-chat-bubble.assistant .writing-chat-bubble-content {
+  background: #f0f0f0;
+  color: #333;
+  border-bottom-left-radius: 2px;
+}
+
+.writing-chat-bubble-actions {
+  display: flex;
+  gap: 2px;
+  margin-top: 2px;
+}
+
+/* latex.js preview overrides */
+.latex-preview-container {
+  font-size: 14px;
+  line-height: 1.8;
+}
+
+/* CodeMirror height fix */
+.cm-editor {
+  height: 100% !important;
+}
+.cm-scroller {
+  overflow: auto !important;
+}

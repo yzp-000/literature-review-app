@@ -8,11 +8,13 @@
 
 - **课题管理** — 多课题独立工作空间，自动创建标准目录结构，概览仪表盘
 - **论文管理** — PDF 导入自动解析元数据、手动添加、搜索筛选、列显示配置
-- **分屏阅读** — 左侧 PDF 右侧 Markdown 笔记，可拖拽调节比例，支持 LaTeX 公式渲染
+- **分屏阅读** — 左侧 PDF（react-pdf 渲染，支持文字选中）右侧 Markdown 笔记，可拖拽调节比例，支持 LaTeX 公式渲染
+- **划词翻译** — PDF 和笔记区域均可划词翻译，选中英文即弹出翻译小窗，流式显示中文结果
 - **AI 生成笔记** — 基于 PDF 内容自动生成 7 节结构化论文笔记（流式输出）
 - **文献检索** — AI 推荐论文 → CrossRef 验证 → 自动下载 PDF → 导入文献库 → 可选自动生成笔记
 - **关系图谱** — 力导向交互式图谱，可视化论文引用/关联/对比等关系，支持添加/删除
 - **导出报告** — 导出为 PDF，支持 AI 综合文献总结放在报告最前面
+- **论文写作** — AI 辅助 LaTeX 论文写作：CodeMirror 6 编辑器 + latex.js 实时预览 + xelatex PDF 编译，支持 AI 续写/润色/生成章节/对话
 - **多 LLM 支持** — 兼容任何 OpenAI 格式 API（DeepSeek、OpenAI、Claude 等）
 
 ## 截图预览
@@ -219,7 +221,10 @@ chmod +x update.sh
 | UI 组件 | Ant Design 5 |
 | 状态管理 | Zustand |
 | 图谱可视化 | react-force-graph-2d (d3-force) |
+| PDF 渲染 | react-pdf (pdfjs-dist) |
 | Markdown 编辑 | @uiw/react-md-editor |
+| LaTeX 编辑 | @uiw/react-codemirror (CodeMirror 6) |
+| LaTeX 实时预览 | latex.js |
 | 公式渲染 | remark-math + rehype-katex |
 | 后端框架 | Python FastAPI + Uvicorn |
 | PDF 解析 | PyMuPDF (pymupdf4llm) |
@@ -249,6 +254,7 @@ literature-review-app/
 │   │   ├── graph.py             # 关系图谱 & 关系管理
 │   │   ├── export.py            # PDF 导出 & AI 综合总结
 │   │   ├── files.py             # Markdown 文件读写
+│   │   ├── writing.py           # 论文写作（项目CRUD、编译、AI写作）
 │   │   └── settings.py          # 设置管理
 │   ├── services/                # 业务逻辑层
 │   │   ├── paper_service.py     # 论文操作
@@ -258,6 +264,7 @@ literature-review-app/
 │   │   ├── pdf_service.py       # PDF 解析
 │   │   ├── graph_service.py     # 关系图谱计算
 │   │   ├── markdown_service.py  # Markdown 读写
+│   │   ├── writing_service.py   # 论文写作项目管理 & xelatex 编译
 │   │   └── export_service.py    # HTML 导出渲染
 │   ├── models/                  # Pydantic 数据模型
 │   ├── llm_providers/           # LLM 提供商抽象层
@@ -277,11 +284,18 @@ literature-review-app/
         │   ├── SearchPage       # 文献检索
         │   ├── GraphPage        # 关系图谱
         │   ├── ExportPage       # 导出 & AI 总结
+        │   ├── WritingListPage  # 写作项目列表
+        │   ├── WritingPage      # 写作主页面（编辑器+预览+AI）
         │   ├── SettingsPage     # 设置
         │   └── GuidePage        # 使用说明
         └── components/          # 可复用组件
+            ├── PdfViewer        # PDF 渲染（react-pdf，支持文字选中）
+            ├── TranslationPopup # 划词翻译弹窗
             ├── MarkdownEditor   # Markdown 编辑器
-            └── MarkdownViewer   # Markdown 渲染（含数学公式）
+            ├── MarkdownViewer   # Markdown 渲染（含数学公式）
+            ├── LaTeXEditor      # LaTeX 编辑器（CodeMirror 6）
+            ├── LaTeXPreview     # LaTeX 实时预览（latex.js）
+            └── WritingChatPanel # AI 写作对话面板
 ```
 
 ## 数据存储
@@ -306,6 +320,12 @@ literature-review-app/
 │
 └── [课题B]_文献调研/
     └── ...
+
+├── [项目名]_论文写作/                # 论文写作项目
+│   ├── writing.json                # 项目元数据
+│   ├── main.tex                    # 主 LaTeX 文件
+│   └── output/                     # 编译输出
+│       └── main.pdf
 ```
 
 ## 支持的 LLM 提供商
