@@ -301,7 +301,10 @@ const faqPanels = [
     children: (
       <div>
         <Paragraph>在项目根目录运行：</Paragraph>
-        <Paragraph><Text code>./start.sh</Text></Paragraph>
+        <ul>
+          <li><Text strong>Linux / macOS</Text>：<Text code>./start.sh</Text></li>
+          <li><Text strong>Windows</Text>：双击 <Text code>start.bat</Text></li>
+        </ul>
         <Paragraph>
           启动后访问 <Text code>http://127.0.0.1:5173</Text>（前端）。
           后端 API 文档可访问 <Text code>http://127.0.0.1:8000/docs</Text>。

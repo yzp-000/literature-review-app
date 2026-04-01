@@ -164,10 +164,17 @@ cp config.json.example config.json
 
 一键启动（同时启动前后端）：
 
+**Linux / macOS：**
 ```bash
 chmod +x start.sh
 ./start.sh
 ```
+
+**Windows：**
+```cmd
+start.bat
+```
+> 双击 `start.bat` 即可，会自动打开两个命令行窗口分别运行前后端，并在 3 秒后打开浏览器。
 
 或手动分别启动：
 
@@ -199,10 +206,17 @@ npx vite --host 127.0.0.1 --port 5173
 
 当有新版本发布时，运行一键更新脚本即可：
 
+**Linux / macOS：**
 ```bash
 cd literature-review-app
 chmod +x update.sh
 ./update.sh
+```
+
+**Windows：**
+```cmd
+cd literature-review-app
+update.bat
 ```
 
 更新脚本会自动完成：
@@ -239,7 +253,10 @@ literature-review-app/
 ├── .gitignore
 ├── README.md
 ├── config.json.example          # 配置文件示例（真实 config.json 被 gitignore）
-├── start.sh                     # 一键启动脚本
+├── start.sh                     # 一键启动脚本（Linux/macOS）
+├── start.bat                    # 一键启动脚本（Windows）
+├── update.sh                    # 一键更新脚本（Linux/macOS）
+├── update.bat                   # 一键更新脚本（Windows）
 │
 ├── backend/                     # Python FastAPI 后端
 │   ├── main.py                  # 应用入口 & CORS 配置
