@@ -9,6 +9,11 @@ pdfjs.GlobalWorkerOptions.workerSrc = new URL(
   import.meta.url,
 ).toString();
 
+const cMapUrl = new URL(
+  'pdfjs-dist/cmaps/',
+  import.meta.url,
+).toString();
+
 interface PdfViewerProps {
   url: string;
   dragging?: boolean;
@@ -50,6 +55,10 @@ export default function PdfViewer({ url, dragging }: PdfViewerProps) {
         onLoadSuccess={onDocumentLoadSuccess}
         loading={<Spin style={{ display: 'block', margin: '40px auto' }} />}
         error={<div style={{ textAlign: 'center', padding: 40, color: '#999' }}>PDF 加载失败</div>}
+        options={{
+          cMapUrl,
+          cMapPacked: true,
+        }}
       >
         {numPages > 0 && containerWidth > 0 &&
           Array.from({ length: numPages }, (_, i) => (
