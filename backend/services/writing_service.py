@@ -181,13 +181,14 @@ async def compile_latex(name: str) -> dict:
     log_text = ""
 
     # Run xelatex twice for cross-references
+    # Use -interaction=nonstopmode (don't stop on errors, try to produce output)
+    # Don't use -halt-on-error: font warnings can cause non-zero exit but PDF is still produced
     for run_idx in range(2):
         try:
             proc = await asyncio.create_subprocess_exec(
                 "xelatex",
                 "-interaction=nonstopmode",
-                "-halt-on-error",
-                f"-output-directory={output_dir}",
+                f"-output-directory=output",
                 main_file,
                 cwd=str(proj_dir),
                 stdout=asyncio.subprocess.PIPE,
@@ -195,9 +196,16 @@ async def compile_latex(name: str) -> dict:
             )
             stdout, _ = await asyncio.wait_for(proc.communicate(), timeout=120)
             log_text = stdout.decode("utf-8", errors="replace")
-            if proc.returncode != 0 and run_idx == 0:
+            # Check if PDF was produced after first pass; if not, no point running again
+            pdf_name_check = Path(main_file).stem + ".pdf"
+            if run_idx == 0 and not (output_dir / pdf_name_check).exists():
                 break
         except asyncio.TimeoutError:
+            # Kill the timed-out process
+            try:
+                proc.kill()
+            except Exception:
+                pass
             return {
                 "success": False,
                 "pdf_path": "",

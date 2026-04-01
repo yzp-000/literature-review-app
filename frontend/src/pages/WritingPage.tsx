@@ -475,7 +475,7 @@ export default function WritingPage() {
           ) : (
             <PdfViewer
               key={pdfKey}
-              url={writingApi.pdfUrl(name)}
+              url={writingApi.pdfUrl(name) + `?t=${pdfKey}`}
               dragging={dragging}
             />
           )}
