@@ -105,6 +105,9 @@ export const settingsApi = {
   addProvider: (data: any) => api.post('/settings/providers', data).then(r => r.data),
   updateProvider: (id: string, data: any) => api.put(`/settings/providers/${id}`, data).then(r => r.data),
   deleteProvider: (id: string) => api.delete(`/settings/providers/${id}`).then(r => r.data),
+  getNoteTemplate: () => api.get('/settings/note_template').then(r => r.data),
+  setNoteTemplate: (template: string) => api.put('/settings/note_template', { template }).then(r => r.data),
+  resetNoteTemplate: () => api.delete('/settings/note_template').then(r => r.data),
 };
 
 // ============ Search ============

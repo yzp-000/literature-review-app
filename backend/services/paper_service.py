@@ -6,6 +6,7 @@ from pathlib import Path
 
 from models import Paper, PaperCreate, PaperUpdate
 from services.workspace_service import get_workspace_path
+from config import load_config, DEFAULT_NOTE_TEMPLATE
 
 
 def _papers_file(workspace: str) -> Path:
@@ -120,53 +121,25 @@ def delete_paper(workspace: str, paper_id: str) -> bool:
 
 
 def _generate_paper_note_template(paper: dict) -> str:
-    """Generate a 7-section paper note template."""
+    """Generate a paper note from the configured template (or default 7-section template)."""
+    config = load_config()
+    template = config.get("note_template", "").strip() or DEFAULT_NOTE_TEMPLATE
+
     title = paper.get("title_zh") or paper.get("title_en") or "未命名"
     authors = ", ".join(paper.get("authors", []))
-    year = paper.get("year", "")
+    year = str(paper.get("year", ""))
     journal = paper.get("journal", "")
+    doi = paper.get("doi", "")
+    keywords = ", ".join(paper.get("keywords", []))
 
-    return f"""# {title}
+    result = template
+    result = result.replace("{{title}}", title)
+    result = result.replace("{{title_zh}}", paper.get("title_zh", ""))
+    result = result.replace("{{title_en}}", paper.get("title_en", ""))
+    result = result.replace("{{authors}}", authors)
+    result = result.replace("{{year}}", year)
+    result = result.replace("{{journal}}", journal)
+    result = result.replace("{{doi}}", doi)
+    result = result.replace("{{keywords}}", keywords)
 
-> **作者**: {authors}
-> **年份**: {year}
-> **期刊/会议**: {journal}
-
----
-
-## 1. 论文基本信息
-
-| 项目 | 内容 |
-|------|------|
-| 标题(中) | {paper.get('title_zh', '')} |
-| 标题(英) | {paper.get('title_en', '')} |
-| 作者 | {authors} |
-| 年份 | {year} |
-| 期刊/会议 | {journal} |
-| DOI | {paper.get('doi', '')} |
-| 关键词 | {', '.join(paper.get('keywords', []))} |
-
-## 2. 研究背景与动机
-
-（待填写）
-
-## 3. 核心方法与技术路线
-
-（待填写）
-
-## 4. 实验设计与结果
-
-（待填写）
-
-## 5. 创新点与贡献
-
-（待填写）
-
-## 6. 局限性与未来工作
-
-（待填写）
-
-## 7. 个人评价与笔记
-
-（待填写）
-"""
+    return result

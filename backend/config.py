@@ -11,10 +11,56 @@ CONFIG_EXAMPLE_PATH = APP_DIR / "config.json.example"
 # Fallback: parent of the app directory
 _DEFAULT_BASE_DIR = str(Path(__file__).resolve().parent.parent.parent)
 
+DEFAULT_NOTE_TEMPLATE = """# {{title}}
+
+> **作者**: {{authors}}
+> **年份**: {{year}}
+> **期刊/会议**: {{journal}}
+
+---
+
+## 1. 论文基本信息
+
+| 项目 | 内容 |
+|------|------|
+| 标题(中) | {{title_zh}} |
+| 标题(英) | {{title_en}} |
+| 作者 | {{authors}} |
+| 年份 | {{year}} |
+| 期刊/会议 | {{journal}} |
+| DOI | {{doi}} |
+| 关键词 | {{keywords}} |
+
+## 2. 研究背景与动机
+
+（待填写）
+
+## 3. 核心方法与技术路线
+
+（待填写）
+
+## 4. 实验设计与结果
+
+（待填写）
+
+## 5. 创新点与贡献
+
+（待填写）
+
+## 6. 局限性与未来工作
+
+（待填写）
+
+## 7. 个人评价与笔记
+
+（待填写）
+"""
+
 DEFAULT_CONFIG = {
     "base_dir": "",
     "llm_providers": [],
     "ui_preferences": {"language": "zh-CN", "theme": "light"},
+    "note_template": "",
 }
 
 

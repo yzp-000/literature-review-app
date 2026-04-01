@@ -6,7 +6,7 @@ from typing import Optional
 from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel
 
-from config import load_config, save_config, get_base_dir
+from config import load_config, save_config, get_base_dir, DEFAULT_NOTE_TEMPLATE
 from models import LLMProviderCreate
 
 router = APIRouter(prefix="/api/settings", tags=["settings"])
@@ -198,3 +198,35 @@ async def delete_provider(provider_id: str):
     config["llm_providers"] = [p for p in providers if p["id"] != provider_id]
     save_config(config)
     return {"ok": True}
+
+
+# ---- Note template ----
+
+class NoteTemplateUpdate(BaseModel):
+    template: str
+
+
+@router.get("/note_template")
+async def get_note_template():
+    config = load_config()
+    custom = config.get("note_template", "")
+    return {
+        "template": custom if custom else DEFAULT_NOTE_TEMPLATE,
+        "is_custom": bool(custom),
+    }
+
+
+@router.put("/note_template")
+async def set_note_template(body: NoteTemplateUpdate):
+    config = load_config()
+    config["note_template"] = body.template
+    save_config(config)
+    return {"template": body.template, "is_custom": True}
+
+
+@router.delete("/note_template")
+async def reset_note_template():
+    config = load_config()
+    config["note_template"] = ""
+    save_config(config)
+    return {"template": DEFAULT_NOTE_TEMPLATE, "is_custom": False}

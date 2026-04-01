@@ -238,6 +238,7 @@ const featurePanels = [
           <li><Text strong>参数调整</Text>：可设置 Max Tokens 和 Temperature。</li>
           <li><Text strong>默认提供商</Text>：设为默认后，文献检索、AI 生成总结等功能将优先使用该提供商。</li>
           <li>API Key 在设置页以脱敏形式展示，安全存储在本地 <Text code>config.json</Text> 中。编辑提供商时，API Key 栏留空即保持原 Key 不变，无需重复输入。</li>
+          <li><Text strong>论文笔记模板</Text>：自定义创建论文时自动生成的笔记模板。可在文本框中直接编辑 Markdown 格式模板，也可上传 <Text code>.md</Text> 文件导入。模板支持占位符（<Text code>{'{{title}}'}</Text> <Text code>{'{{authors}}'}</Text> <Text code>{'{{year}}'}</Text> <Text code>{'{{journal}}'}</Text> <Text code>{'{{doi}}'}</Text> <Text code>{'{{keywords}}'}</Text> <Text code>{'{{title_zh}}'}</Text> <Text code>{'{{title_en}}'}</Text>），创建论文时自动替换为实际元数据。可一键恢复默认 7 节模板。</li>
         </ul>
       </div>
     ),
@@ -282,7 +283,7 @@ const faqPanels = [
           <li><Text strong>局限性与未来工作</Text> — 还有什么问题待解决</li>
           <li><Text strong>个人评价与笔记</Text> — 自己的思考和笔记</li>
         </ol>
-        <Paragraph>可以手动编辑填写，也可以使用「AI 生成总结」功能自动生成第 2~7 节内容。</Paragraph>
+        <Paragraph>可以手动编辑填写，也可以使用「AI 生成总结」功能自动生成第 2~7 节内容。如需自定义模板结构，可在「设置」页的「论文笔记模板」中修改或导入自己的模板。</Paragraph>
       </div>
     ),
   },

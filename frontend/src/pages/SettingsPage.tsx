@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
-import { Typography, Card, Form, Input, Button, Table, Space, Switch, message, Popconfirm, InputNumber, Tag, Alert } from 'antd';
-import { PlusOutlined, DeleteOutlined, EditOutlined, FolderOutlined, FolderOpenOutlined, CheckCircleOutlined, CloseCircleOutlined, ReloadOutlined } from '@ant-design/icons';
+import { Typography, Card, Form, Input, Button, Table, Space, Switch, message, Popconfirm, InputNumber, Tag, Alert, Upload } from 'antd';
+import { PlusOutlined, DeleteOutlined, EditOutlined, FolderOutlined, FolderOpenOutlined, CheckCircleOutlined, CloseCircleOutlined, ReloadOutlined, UploadOutlined, FileTextOutlined, SaveOutlined } from '@ant-design/icons';
 import { settingsApi } from '../api';
 import { useAppStore } from '../stores/useAppStore';
 import FolderPicker from '../components/FolderPicker';
@@ -20,6 +20,11 @@ export default function SettingsPage() {
   const [modalMode, setModalMode] = useState<'add' | 'edit' | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form] = Form.useForm();
+
+  // ---- Note template state ----
+  const [noteTemplate, setNoteTemplate] = useState('');
+  const [noteTemplateIsCustom, setNoteTemplateIsCustom] = useState(false);
+  const [savingTemplate, setSavingTemplate] = useState(false);
 
   const { fetchWorkspaces } = useAppStore();
 
@@ -44,9 +49,20 @@ export default function SettingsPage() {
     setLoading(false);
   };
 
+  const fetchNoteTemplate = async () => {
+    try {
+      const data = await settingsApi.getNoteTemplate();
+      setNoteTemplate(data.template || '');
+      setNoteTemplateIsCustom(data.is_custom || false);
+    } catch {
+      message.error('加载笔记模板失败');
+    }
+  };
+
   useEffect(() => {
     fetchBaseDir();
     fetchProviders();
+    fetchNoteTemplate();
   }, []);
 
   // ---- Base directory handlers ----
@@ -75,6 +91,45 @@ export default function SettingsPage() {
       message.error('重置失败');
     }
     setSavingBaseDir(false);
+  };
+
+  // ---- Note template handlers ----
+  const handleSaveTemplate = async () => {
+    setSavingTemplate(true);
+    try {
+      await settingsApi.setNoteTemplate(noteTemplate);
+      setNoteTemplateIsCustom(true);
+      message.success('笔记模板已保存');
+    } catch {
+      message.error('保存模板失败');
+    }
+    setSavingTemplate(false);
+  };
+
+  const handleResetTemplate = async () => {
+    setSavingTemplate(true);
+    try {
+      const data = await settingsApi.resetNoteTemplate();
+      setNoteTemplate(data.template || '');
+      setNoteTemplateIsCustom(false);
+      message.success('已恢复默认模板');
+    } catch {
+      message.error('重置模板失败');
+    }
+    setSavingTemplate(false);
+  };
+
+  const handleImportTemplate = (file: File) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const content = e.target?.result as string;
+      if (content) {
+        setNoteTemplate(content);
+        message.success('模板文件已导入，请点击「保存」使其生效');
+      }
+    };
+    reader.readAsText(file);
+    return false; // prevent auto upload
   };
 
   // ---- LLM provider handlers ----
@@ -280,6 +335,57 @@ export default function SettingsPage() {
           </Form>
         </Card>
       )}
+
+      {/* ---- 论文笔记模板 ---- */}
+      <Card
+        title={<span><FileTextOutlined style={{ marginRight: 8 }} />论文笔记模板</span>}
+        style={{ marginBottom: 24 }}
+        extra={noteTemplateIsCustom ? <Tag color="blue">自定义</Tag> : <Tag>默认</Tag>}
+      >
+        <Alert
+          message="支持的占位符"
+          description={
+            <span>
+              模板中可使用以下占位符，创建论文时自动替换为对应元数据：
+              <code>{' {{title}} '}</code>标题（中文优先）、
+              <code>{' {{title_zh}} '}</code>中文标题、
+              <code>{' {{title_en}} '}</code>英文标题、
+              <code>{' {{authors}} '}</code>作者、
+              <code>{' {{year}} '}</code>年份、
+              <code>{' {{journal}} '}</code>期刊/会议、
+              <code>{' {{doi}} '}</code>DOI、
+              <code>{' {{keywords}} '}</code>关键词
+            </span>
+          }
+          type="info"
+          showIcon
+          style={{ marginBottom: 16 }}
+        />
+
+        <Input.TextArea
+          value={noteTemplate}
+          onChange={(e) => setNoteTemplate(e.target.value)}
+          rows={15}
+          style={{ fontFamily: 'monospace', marginBottom: 12 }}
+          placeholder="输入 Markdown 格式的笔记模板..."
+        />
+
+        <Space>
+          <Upload
+            accept=".md,.markdown,.txt"
+            showUploadList={false}
+            beforeUpload={handleImportTemplate}
+          >
+            <Button icon={<UploadOutlined />}>导入模板 .md</Button>
+          </Upload>
+          <Button type="primary" icon={<SaveOutlined />} onClick={handleSaveTemplate} loading={savingTemplate}>
+            保存
+          </Button>
+          <Popconfirm title="确认恢复默认模板？自定义内容将被覆盖。" onConfirm={handleResetTemplate}>
+            <Button icon={<ReloadOutlined />} loading={savingTemplate}>恢复默认</Button>
+          </Popconfirm>
+        </Space>
+      </Card>
     </div>
   );
 }
