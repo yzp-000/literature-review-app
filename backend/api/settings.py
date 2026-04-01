@@ -175,6 +175,9 @@ async def update_provider(provider_id: str, body: LLMProviderCreate):
         if p["id"] == provider_id:
             # Preserve id
             updated = {"id": provider_id, **body.model_dump()}
+            # If api_key is empty, keep the existing key
+            if not updated["api_key"] or not updated["api_key"].strip():
+                updated["api_key"] = p.get("api_key", "")
             if body.is_default:
                 for pp in providers:
                     pp["is_default"] = False

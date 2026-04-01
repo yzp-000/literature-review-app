@@ -257,7 +257,7 @@ export default function SettingsPage() {
               <Input placeholder="https://api.deepseek.com/v1" />
             </Form.Item>
             <Form.Item name="api_key" label="API Key" rules={[{ required: modalMode === 'add', message: '请输入 API Key' }]}>
-              <Input.Password placeholder="sk-xxxx" />
+              <Input.Password placeholder={modalMode === 'edit' ? '留空则保持原 Key 不变' : 'sk-xxxx'} />
             </Form.Item>
             <Form.Item name="model" label="模型" rules={[{ required: true, message: '请输入模型名' }]}>
               <Input placeholder="deepseek-chat" />

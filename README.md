@@ -369,7 +369,7 @@ npx vite --port 5174                 # 前端换端口
 <details>
 <summary>API Key 安全吗？</summary>
 
-API Key 存储在本地 `config.json` 中（已被 `.gitignore` 排除），不会上传到 Git 仓库。设置页面中以脱敏形式显示。
+API Key 存储在本地 `config.json` 中（已被 `.gitignore` 排除），不会上传到 Git 仓库。设置页面中以脱敏形式显示。编辑提供商时，API Key 栏留空即保持原 Key 不变，无需重复输入。
 
 </details>
 

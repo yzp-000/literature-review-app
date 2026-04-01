@@ -235,7 +235,7 @@ const featurePanels = [
           <li><Text strong>添加提供商</Text>：填写名称、API Base URL、API Key、模型名称。支持任何 OpenAI 兼容接口（DeepSeek、OpenAI、Claude 兼容网关、通义千问、Ollama 等）。URL 会自动补全 <Text code>/v1</Text> 路径。</li>
           <li><Text strong>参数调整</Text>：可设置 Max Tokens 和 Temperature。</li>
           <li><Text strong>默认提供商</Text>：设为默认后，文献检索、AI 生成总结等功能将优先使用该提供商。</li>
-          <li>API Key 在设置页以脱敏形式展示，安全存储在本地 <Text code>config.json</Text> 中。</li>
+          <li>API Key 在设置页以脱敏形式展示，安全存储在本地 <Text code>config.json</Text> 中。编辑提供商时，API Key 栏留空即保持原 Key 不变，无需重复输入。</li>
         </ul>
       </div>
     ),
