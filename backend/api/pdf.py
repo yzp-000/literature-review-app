@@ -1,7 +1,7 @@
 """PDF API routes."""
 from fastapi import APIRouter, HTTPException, UploadFile, File, Query
 from fastapi.responses import FileResponse
-from typing import Optional
+from typing import Optional, List
 
 from services import pdf_service
 from services.workspace_service import get_workspace_path
@@ -36,6 +36,31 @@ async def upload_pdf(workspace: str, file: UploadFile = File(...), paper_id: Opt
         _save_papers(workspace, data)
 
     return {"path": rel_path, "metadata": metadata}
+
+
+@router.post("/batch_upload")
+async def batch_upload_pdf(workspace: str, files: List[UploadFile] = File(...)):
+    """Upload multiple PDFs, extract metadata for each. Single file failure does not affect others."""
+    results = []
+    for file in files:
+        item: dict = {"filename": file.filename, "path": None, "metadata": None, "error": None}
+        try:
+            if not file.filename or not file.filename.lower().endswith(".pdf"):
+                item["error"] = f"文件 {file.filename} 不是 PDF 格式"
+                results.append(item)
+                continue
+            content = await file.read()
+            rel_path = pdf_service.save_pdf(workspace, file.filename, content)
+            ws_path = get_workspace_path(workspace)
+            full_path = ws_path / rel_path
+            metadata = pdf_service.extract_metadata(full_path)
+            metadata["pdf_path"] = rel_path
+            item["path"] = rel_path
+            item["metadata"] = metadata
+        except Exception as e:
+            item["error"] = str(e)
+        results.append(item)
+    return {"results": results}
 
 
 @router.get("/view")

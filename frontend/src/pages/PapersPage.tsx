@@ -1,12 +1,13 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import {
   Table, Button, Tag, Space, Input, Select, Modal, Form,
   Typography, Empty, message, Popconfirm, Upload, Spin, Divider, Alert,
-  Dropdown, Checkbox, Tooltip,
+  Dropdown, Checkbox, Tooltip, Progress,
 } from 'antd';
 import {
   PlusOutlined, DeleteOutlined, UploadOutlined, SearchOutlined,
   FileAddOutlined, LinkOutlined, SettingOutlined, EditOutlined,
+  CloudUploadOutlined,
 } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import { useAppStore } from '../stores/useAppStore';
@@ -74,6 +75,13 @@ export default function PapersPage() {
   const [importing, setImporting] = useState(false);
   const [parsedMeta, setParsedMeta] = useState<any>(null);
   const [pdfRelPath, setPdfRelPath] = useState('');
+
+  // Batch import states
+  const [batchModalOpen, setBatchModalOpen] = useState(false);
+  const [batchResults, setBatchResults] = useState<any[]>([]);
+  const [batchImporting, setBatchImporting] = useState(false);
+  const [batchProgress, setBatchProgress] = useState({ current: 0, total: 0 });
+  const batchInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (currentWorkspace) fetchPapers();
@@ -165,6 +173,85 @@ export default function PapersPage() {
       message.error('上传失败');
     }
     return false;
+  };
+
+  // ---- Batch import: collect files → upload → show confirm modal ----
+  const handleBatchFiles = async (files: File[]) => {
+    if (!currentWorkspace || files.length === 0) return;
+    setBatchImporting(true);
+    setBatchResults([]);
+    setBatchModalOpen(true);
+    try {
+      const data = await pdfApi.batchUpload(currentWorkspace, files);
+      const results = (data.results || []).map((r: any, idx: number) => ({
+        ...r,
+        key: idx,
+        title_zh: r.metadata?.title_zh || '',
+        title_en: r.metadata?.title_en || '',
+        authors: (r.metadata?.authors || []).join(', '),
+        year: r.metadata?.year || '',
+        journal: r.metadata?.journal || '',
+        doi: r.metadata?.doi || '',
+        keywords: (r.metadata?.keywords || []).join(', '),
+        pdf_path: r.path || '',
+      }));
+      setBatchResults(results);
+    } catch (e: any) {
+      message.error('批量上传失败: ' + (e.response?.data?.detail || e.message));
+      setBatchModalOpen(false);
+    }
+    setBatchImporting(false);
+  };
+
+  const handleBatchFieldChange = (key: number, field: string, value: string) => {
+    setBatchResults(prev => prev.map(r => r.key === key ? { ...r, [field]: value } : r));
+  };
+
+  const handleBatchRemove = (key: number) => {
+    setBatchResults(prev => prev.filter(r => r.key !== key));
+  };
+
+  const handleBatchConfirm = async () => {
+    const validItems = batchResults.filter(r => !r.error);
+    if (validItems.length === 0) {
+      message.warning('没有可导入的论文');
+      return;
+    }
+    setBatchImporting(true);
+    setBatchProgress({ current: 0, total: validItems.length });
+    let successCount = 0;
+    for (let i = 0; i < validItems.length; i++) {
+      const r = validItems[i];
+      setBatchProgress({ current: i + 1, total: validItems.length });
+      try {
+        const authors = typeof r.authors === 'string'
+          ? r.authors.split(/[,，]/).map((s: string) => s.trim()).filter(Boolean)
+          : r.authors || [];
+        const keywords = typeof r.keywords === 'string'
+          ? r.keywords.split(/[,，]/).map((s: string) => s.trim()).filter(Boolean)
+          : r.keywords || [];
+        await createPaper({
+          title_zh: r.title_zh || '',
+          title_en: r.title_en || '',
+          authors,
+          year: r.year ? Number(r.year) : undefined,
+          journal: r.journal || '',
+          doi: r.doi || '',
+          keywords,
+          pdf_path: r.pdf_path || '',
+          status: 'unread',
+        });
+        successCount++;
+      } catch (e: any) {
+        message.error(`导入 "${r.filename}" 失败: ${e.message || ''}`);
+      }
+    }
+    setBatchImporting(false);
+    setBatchModalOpen(false);
+    setBatchResults([]);
+    setBatchProgress({ current: 0, total: 0 });
+    message.success(`成功导入 ${successCount} 篇论文`);
+    fetchPapers();
   };
 
   // ---- Create or update paper ----
@@ -400,6 +487,25 @@ export default function PapersPage() {
               导入 PDF
             </Button>
           </Upload>
+          <input
+            ref={batchInputRef}
+            type="file"
+            accept=".pdf"
+            multiple
+            style={{ display: 'none' }}
+            onChange={(e) => {
+              const files = Array.from(e.target.files || []);
+              if (files.length > 0) handleBatchFiles(files);
+              e.target.value = '';
+            }}
+          />
+          <Button
+            icon={<CloudUploadOutlined />}
+            loading={batchImporting}
+            onClick={() => batchInputRef.current?.click()}
+          >
+            批量导入
+          </Button>
           <Button icon={<PlusOutlined />} onClick={openManualAdd}>
             手动添加
           </Button>
@@ -511,6 +617,144 @@ export default function PapersPage() {
               </div>
             </div>
           </>
+        )}
+      </Modal>
+
+      {/* ===== Batch Import Modal ===== */}
+      <Modal
+        title="批量导入 PDF — 确认论文信息"
+        open={batchModalOpen}
+        onCancel={() => { if (!batchImporting) { setBatchModalOpen(false); setBatchResults([]); } }}
+        width={960}
+        footer={
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span style={{ fontSize: 13, color: '#666' }}>
+              共 {batchResults.length} 篇，
+              成功解析 {batchResults.filter(r => !r.error).length} 篇，
+              失败 {batchResults.filter(r => r.error).length} 篇
+            </span>
+            <Space>
+              <Button onClick={() => { setBatchModalOpen(false); setBatchResults([]); }} disabled={batchImporting}>
+                取消
+              </Button>
+              <Button
+                type="primary"
+                onClick={handleBatchConfirm}
+                loading={batchImporting}
+                disabled={batchResults.filter(r => !r.error).length === 0}
+              >
+                确认导入 ({batchResults.filter(r => !r.error).length} 篇)
+              </Button>
+            </Space>
+          </div>
+        }
+      >
+        {batchImporting && batchResults.length === 0 && (
+          <div style={{ textAlign: 'center', padding: '40px 0' }}>
+            <Spin size="large" />
+            <div style={{ marginTop: 16, color: '#666' }}>正在上传并解析 PDF，请稍候...</div>
+          </div>
+        )}
+
+        {batchImporting && batchProgress.total > 0 && (
+          <div style={{ marginBottom: 16 }}>
+            <Progress
+              percent={Math.round((batchProgress.current / batchProgress.total) * 100)}
+              format={() => `${batchProgress.current} / ${batchProgress.total}`}
+            />
+          </div>
+        )}
+
+        {batchResults.length > 0 && (
+          <Table
+            dataSource={batchResults}
+            rowKey="key"
+            size="small"
+            pagination={false}
+            scroll={{ y: 400 }}
+            columns={[
+              {
+                title: '文件名',
+                dataIndex: 'filename',
+                width: 150,
+                ellipsis: true,
+              },
+              {
+                title: '标题',
+                key: 'title',
+                width: 200,
+                render: (_: any, r: any) => r.error ? (
+                  <Tag color="red">{r.error}</Tag>
+                ) : (
+                  <Input
+                    size="small"
+                    value={r.title_zh || r.title_en}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      // If original was zh, update zh; otherwise update en
+                      const field = r.title_zh ? 'title_zh' : 'title_en';
+                      handleBatchFieldChange(r.key, field, val);
+                    }}
+                    placeholder="论文标题"
+                  />
+                ),
+              },
+              {
+                title: '作者',
+                key: 'authors',
+                width: 160,
+                render: (_: any, r: any) => r.error ? null : (
+                  <Input
+                    size="small"
+                    value={r.authors}
+                    onChange={(e) => handleBatchFieldChange(r.key, 'authors', e.target.value)}
+                    placeholder="作者"
+                  />
+                ),
+              },
+              {
+                title: '年份',
+                key: 'year',
+                width: 80,
+                render: (_: any, r: any) => r.error ? null : (
+                  <Input
+                    size="small"
+                    type="number"
+                    value={r.year}
+                    onChange={(e) => handleBatchFieldChange(r.key, 'year', e.target.value)}
+                    placeholder="年份"
+                  />
+                ),
+              },
+              {
+                title: '期刊',
+                key: 'journal',
+                width: 140,
+                render: (_: any, r: any) => r.error ? null : (
+                  <Input
+                    size="small"
+                    value={r.journal}
+                    onChange={(e) => handleBatchFieldChange(r.key, 'journal', e.target.value)}
+                    placeholder="期刊/会议"
+                  />
+                ),
+              },
+              {
+                title: '操作',
+                key: 'action',
+                width: 60,
+                render: (_: any, r: any) => (
+                  <Button
+                    size="small"
+                    danger
+                    icon={<DeleteOutlined />}
+                    onClick={() => handleBatchRemove(r.key)}
+                    disabled={batchImporting && batchProgress.total > 0}
+                  />
+                ),
+              },
+            ]}
+          />
         )}
       </Modal>
     </div>

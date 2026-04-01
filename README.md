@@ -7,7 +7,7 @@
 ## 功能特性
 
 - **课题管理** — 多课题独立工作空间，自动创建标准目录结构，概览仪表盘
-- **论文管理** — PDF 导入自动解析元数据、手动添加、编辑论文信息、搜索筛选、列显示配置
+- **论文管理** — PDF 导入自动解析元数据、批量导入多篇 PDF、手动添加、编辑论文信息、搜索筛选、列显示配置
 - **分屏阅读** — 左侧 PDF（react-pdf 渲染，支持文字选中）右侧 Markdown 笔记，可拖拽调节比例，支持 LaTeX 公式渲染
 - **划词翻译** — PDF 和笔记区域均可划词翻译，选中英文即弹出翻译小窗，流式显示中文结果
 - **AI 生成笔记** — 基于 PDF 内容自动生成 7 节结构化论文笔记（流式输出，后台运行不中断）
@@ -19,7 +19,26 @@
 
 ## 截图预览
 
-> TODO: 添加截图
+### 课题管理 & 概览
+![课题管理](docs/screenshots/01_workspace.png)
+
+### 论文管理
+![论文管理](docs/screenshots/02_papers.png)
+
+### 分屏阅读（PDF + 笔记）
+![论文详情](docs/screenshots/03_paper_detail.png)
+
+### 文献检索
+![文献检索](docs/screenshots/04_search.png)
+
+### 关系图谱
+![关系图谱](docs/screenshots/05_graph.png)
+
+### 导出 & AI 综合总结
+![导出](docs/screenshots/06_export.png)
+
+### 设置
+![设置](docs/screenshots/07_settings.png)
 
 ## 环境要求
 

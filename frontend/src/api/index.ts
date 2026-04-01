@@ -49,6 +49,13 @@ export const pdfApi = {
       timeout: 60000,
     }).then(r => r.data);
   },
+  batchUpload: (workspace: string, files: File[]) => {
+    const form = new FormData();
+    files.forEach(f => form.append('files', f));
+    return api.post(`/workspaces/${encodeURIComponent(workspace)}/pdf/batch_upload`, form, {
+      timeout: 300000,
+    }).then(r => r.data);
+  },
   viewUrl: (workspace: string, path: string) =>
     `/api/workspaces/${encodeURIComponent(workspace)}/pdf/view?path=${encodeURIComponent(path)}`,
 };
