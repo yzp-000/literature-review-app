@@ -83,6 +83,7 @@ const featurePanels = [
         <ul>
           <li><Text strong>导入 PDF</Text>：点击「导入 PDF」上传文件，系统自动提取元数据（标题、作者、年份、DOI 等），弹出确认窗口供核对和补充。</li>
           <li><Text strong>手动添加</Text>：填写中/英文标题、作者、年份、期刊、DOI、关键词等信息。添加后自动生成 7 节笔记模板。</li>
+          <li><Text strong>编辑论文</Text>：在操作列点击编辑按钮，可修改论文的标题、作者、年份、期刊、DOI、关键词等元数据信息。</li>
           <li><Text strong>搜索与筛选</Text>：支持按关键词搜索标题/作者/关键词，也可按阅读状态筛选。</li>
           <li><Text strong>列显示配置</Text>：点击「显示列」按钮可选择表格中需要展示的列（编号、标题、作者、年份、期刊、关键词、DOI、状态、PDF、操作），偏好自动保存在本地。</li>
           <li><Text strong>状态管理</Text>：在表格的操作列直接修改论文阅读状态。</li>

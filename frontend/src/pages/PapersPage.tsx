@@ -6,7 +6,7 @@ import {
 } from 'antd';
 import {
   PlusOutlined, DeleteOutlined, UploadOutlined, SearchOutlined,
-  FileAddOutlined, LinkOutlined, SettingOutlined,
+  FileAddOutlined, LinkOutlined, SettingOutlined, EditOutlined,
 } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import { useAppStore } from '../stores/useAppStore';
@@ -54,6 +54,7 @@ function loadVisibleColumns(): string[] {
 export default function PapersPage() {
   const { currentWorkspace, papers, loadingPapers, fetchPapers, createPaper, updatePaper, deletePaper } = useAppStore();
   const [modalOpen, setModalOpen] = useState(false);
+  const [editingPaper, setEditingPaper] = useState<any>(null);
   const [form] = Form.useForm();
   const [searchKeyword, setSearchKeyword] = useState('');
   const [statusFilter, setStatusFilter] = useState<string | undefined>();
@@ -98,10 +99,30 @@ export default function PapersPage() {
 
   // ---- Manual add (no PDF) ----
   const openManualAdd = () => {
+    setEditingPaper(null);
     setParsedMeta(null);
     setPdfRelPath('');
     form.resetFields();
     form.setFieldsValue({ status: 'unread' });
+    setModalOpen(true);
+  };
+
+  // ---- Edit existing paper ----
+  const openEdit = (record: any) => {
+    setEditingPaper(record);
+    setParsedMeta(null);
+    setPdfRelPath('');
+    form.resetFields();
+    form.setFieldsValue({
+      title_zh: record.title_zh || '',
+      title_en: record.title_en || '',
+      authors: (record.authors || []).join(', '),
+      year: record.year || undefined,
+      journal: record.journal || '',
+      doi: record.doi || '',
+      keywords: (record.keywords || []).join(', '),
+      status: record.status || 'unread',
+    });
     setModalOpen(true);
   };
 
@@ -146,8 +167,8 @@ export default function PapersPage() {
     return false;
   };
 
-  // ---- Create paper ----
-  const handleCreate = async () => {
+  // ---- Create or update paper ----
+  const handleSubmit = async () => {
     try {
       const values = await form.validateFields();
       if (typeof values.authors === 'string') {
@@ -156,19 +177,26 @@ export default function PapersPage() {
       if (typeof values.keywords === 'string') {
         values.keywords = values.keywords.split(/[,，]/).map((s: string) => s.trim()).filter(Boolean);
       }
-      if (pdfRelPath) {
-        values.pdf_path = pdfRelPath;
+
+      if (editingPaper) {
+        await updatePaper(editingPaper.id, values);
+        message.success('论文信息已更新');
+      } else {
+        if (pdfRelPath) {
+          values.pdf_path = pdfRelPath;
+        }
+        await createPaper(values);
+        message.success(pdfRelPath ? 'PDF 导入并创建论文成功' : '论文添加成功');
       }
-      await createPaper(values);
-      message.success(pdfRelPath ? 'PDF 导入并创建论文成功' : '论文添加成功');
       setModalOpen(false);
       form.resetFields();
+      setEditingPaper(null);
       setParsedMeta(null);
       setPdfRelPath('');
       fetchPapers();
     } catch (e: any) {
       if (e.errorFields) return;
-      message.error('添加失败: ' + (e.message || ''));
+      message.error((editingPaper ? '更新' : '添加') + '失败: ' + (e.message || ''));
     }
   };
 
@@ -306,7 +334,7 @@ export default function PapersPage() {
     action: {
       title: '操作',
       key: 'action',
-      width: 140,
+      width: 170,
       render: (_: any, r: any) => (
         <Space size={4}>
           <Select
@@ -316,6 +344,9 @@ export default function PapersPage() {
             options={STATUS_OPTIONS}
             style={{ width: 80 }}
           />
+          <Tooltip title="编辑">
+            <Button size="small" icon={<EditOutlined />} onClick={() => openEdit(r)} />
+          </Tooltip>
           <Popconfirm title="确认删除？" onConfirm={() => handleDelete(r.id)}>
             <Button size="small" danger icon={<DeleteOutlined />} />
           </Popconfirm>
@@ -416,11 +447,11 @@ export default function PapersPage() {
 
       {/* ===== Add / Import Modal ===== */}
       <Modal
-        title={parsedMeta ? '导入 PDF — 确认论文信息' : '添加论文'}
+        title={editingPaper ? '编辑论文信息' : parsedMeta ? '导入 PDF — 确认论文信息' : '添加论文'}
         open={modalOpen}
-        onOk={handleCreate}
-        onCancel={() => { setModalOpen(false); form.resetFields(); setParsedMeta(null); setPdfRelPath(''); }}
-        okText={parsedMeta ? '确认导入' : '添加'}
+        onOk={handleSubmit}
+        onCancel={() => { setModalOpen(false); form.resetFields(); setEditingPaper(null); setParsedMeta(null); setPdfRelPath(''); }}
+        okText={editingPaper ? '保存' : parsedMeta ? '确认导入' : '添加'}
         cancelText="取消"
         width={660}
       >
