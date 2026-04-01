@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useCallback } from 'react';
+import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { Document, Page, pdfjs } from 'react-pdf';
 import { Spin } from 'antd';
 import 'react-pdf/dist/Page/TextLayer.css';
@@ -9,15 +9,16 @@ pdfjs.GlobalWorkerOptions.workerSrc = new URL(
   import.meta.url,
 ).toString();
 
-const cMapUrl = new URL(
-  'pdfjs-dist/cmaps/',
-  import.meta.url,
-).toString();
-
 interface PdfViewerProps {
   url: string;
   dragging?: boolean;
 }
+
+// CMap URL 使用 CDN，确保 CJK 字符正常渲染
+const PDF_OPTIONS = {
+  cMapUrl: `https://unpkg.com/pdfjs-dist@${pdfjs.version}/cmaps/`,
+  cMapPacked: true,
+};
 
 export default function PdfViewer({ url, dragging }: PdfViewerProps) {
   const [numPages, setNumPages] = useState<number>(0);
@@ -55,10 +56,7 @@ export default function PdfViewer({ url, dragging }: PdfViewerProps) {
         onLoadSuccess={onDocumentLoadSuccess}
         loading={<Spin style={{ display: 'block', margin: '40px auto' }} />}
         error={<div style={{ textAlign: 'center', padding: 40, color: '#999' }}>PDF 加载失败</div>}
-        options={{
-          cMapUrl,
-          cMapPacked: true,
-        }}
+        options={PDF_OPTIONS}
       >
         {numPages > 0 && containerWidth > 0 &&
           Array.from({ length: numPages }, (_, i) => (
