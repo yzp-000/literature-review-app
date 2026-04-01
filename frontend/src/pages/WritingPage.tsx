@@ -46,6 +46,7 @@ export default function WritingPage() {
   const [compiling, setCompiling] = useState(false);
   const [compileLog, setCompileLog] = useState('');
   const [compileLogOpen, setCompileLogOpen] = useState(false);
+  const [pdfReady, setPdfReady] = useState(false);
 
   // AI state
   const [aiWorking, setAiWorking] = useState(false);
@@ -58,6 +59,7 @@ export default function WritingPage() {
   const isDirty = content !== savedContent;
 
   // Load project file
+  // Load project file + check if PDF already exists
   useEffect(() => {
     if (!name) return;
     setLoading(true);
@@ -71,6 +73,10 @@ export default function WritingPage() {
         setSavedContent('');
       })
       .finally(() => setLoading(false));
+    // Check if PDF already compiled
+    fetch(writingApi.pdfUrl(name), { method: 'HEAD' })
+      .then(r => { if (r.ok) setPdfReady(true); })
+      .catch(() => {});
   }, [name]);
 
   // Warn before leaving with unsaved changes
@@ -117,6 +123,7 @@ export default function WritingPage() {
       const result = await writingApi.compile(name);
       if (result.success) {
         message.success(`编译成功 (${(result.duration_ms / 1000).toFixed(1)}s)`);
+        setPdfReady(true);
         setPreviewMode('pdf');
         setPdfKey(k => k + 1);
       } else {
@@ -472,12 +479,19 @@ export default function WritingPage() {
         >
           {previewMode === 'live' ? (
             <LaTeXPreview content={content} />
-          ) : (
+          ) : pdfReady ? (
             <PdfViewer
               key={pdfKey}
               url={writingApi.pdfUrl(name) + `?t=${pdfKey}`}
               dragging={dragging}
             />
+          ) : (
+            <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%', color: '#999' }}>
+              <div style={{ textAlign: 'center' }}>
+                <FilePdfOutlined style={{ fontSize: 48, marginBottom: 16 }} />
+                <p>尚未编译，请点击「编译 PDF」生成预览</p>
+              </div>
+            </div>
           )}
         </div>
       </div>
