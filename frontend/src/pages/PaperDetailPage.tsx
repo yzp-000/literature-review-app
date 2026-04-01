@@ -92,9 +92,12 @@ export default function PaperDetailPage() {
     }
   }, [paper?.markdown_path, currentWorkspace]);
 
-  // Auto-open preview modal when noteGen completes for this paper
+  // Auto-open preview modal when noteGen transitions to done for this paper
+  const prevNoteGenStatus = useRef(noteGen.status);
   useEffect(() => {
-    if (isThisPaper && noteGen.status === 'done' && noteGen.generatedContent) {
+    const prev = prevNoteGenStatus.current;
+    prevNoteGenStatus.current = noteGen.status;
+    if (prev === 'running' && isThisPaper && noteGen.status === 'done' && noteGen.generatedContent) {
       setPreviewModalOpen(true);
     }
   }, [noteGen.status, isThisPaper]);

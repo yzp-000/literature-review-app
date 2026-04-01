@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import {
   Typography, Card, Button, Space, Checkbox, message, Empty,
   Switch, Divider, Tag, Tooltip, Input, Alert,
@@ -52,9 +52,12 @@ export default function ExportPage() {
     setSelectedPapers([]);
   }, [currentWorkspace]);
 
-  // Auto-enable includeAiSummary when generation completes
+  // Auto-enable includeAiSummary when generation transitions to done
+  const prevExportStatus = useRef(exportSummary.status);
   useEffect(() => {
-    if (isCurrentWorkspace && exportSummary.status === 'done' && exportSummary.aiSummary) {
+    const prev = prevExportStatus.current;
+    prevExportStatus.current = exportSummary.status;
+    if (prev === 'running' && isCurrentWorkspace && exportSummary.status === 'done' && exportSummary.aiSummary) {
       setIncludeAiSummary(true);
     }
   }, [exportSummary.status, isCurrentWorkspace]);

@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import {
   Input, Button, Card, Space, Select, Typography, Empty, Tag, message,
   Form, InputNumber, Table, Progress, Collapse, Popconfirm, Divider, Tooltip, Steps, Switch,
@@ -111,9 +111,12 @@ export default function SearchPage() {
     if (currentWorkspace) fetchHistory();
   }, [currentWorkspace, fetchHistory]);
 
-  // When search completes, refresh history & papers
+  // When search completes (transition to done/error), refresh history & papers
+  const prevSearchStatus = useRef(search.status);
   useEffect(() => {
-    if (isCurrentWorkspace && (search.status === 'done' || search.status === 'error')) {
+    const prev = prevSearchStatus.current;
+    prevSearchStatus.current = search.status;
+    if (prev === 'running' && isCurrentWorkspace && (search.status === 'done' || search.status === 'error')) {
       fetchHistory();
       fetchPapers();
     }

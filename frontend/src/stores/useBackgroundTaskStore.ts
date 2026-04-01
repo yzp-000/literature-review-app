@@ -143,17 +143,30 @@ const INITIAL_EXPORT_SUMMARY: ExportSummarySlot = {
 };
 
 /* ============================================================
- * Throttle helper – limits set() calls for token-stream slots
+ * Throttle helper – limits set() calls for token-stream slots.
+ * Cancels pending timer when the AbortSignal fires.
  * ============================================================ */
-function createThrottledSetter(set: any, slotKey: 'noteGen' | 'exportSummary', intervalMs = 50) {
+function createThrottledSetter(
+  set: any,
+  slotKey: 'noteGen' | 'exportSummary',
+  signal: AbortSignal,
+  intervalMs = 50,
+) {
   let pending: Record<string, any> | null = null;
   let timer: ReturnType<typeof setTimeout> | null = null;
 
+  const cancel = () => {
+    if (timer) { clearTimeout(timer); timer = null; }
+    pending = null;
+  };
+  signal.addEventListener('abort', cancel, { once: true });
+
   return (patch: Record<string, any>) => {
+    if (signal.aborted) return;
     pending = { ...pending, ...patch };
     if (!timer) {
       timer = setTimeout(() => {
-        if (pending) {
+        if (pending && !signal.aborted) {
           set((s: BackgroundTaskStore) => ({ [slotKey]: { ...s[slotKey], ...pending } }));
           pending = null;
         }
@@ -161,6 +174,13 @@ function createThrottledSetter(set: any, slotKey: 'noteGen' | 'exportSummary', i
       }, intervalMs);
     }
   };
+}
+
+/* ============================================================
+ * Helper: check if the captured controller is still the active one
+ * ============================================================ */
+function isStale(get: () => BackgroundTaskStore, key: '_searchAbort' | '_noteGenAbort' | '_exportSummaryAbort', controller: AbortController) {
+  return get()[key] !== controller;
 }
 
 /* ============================================================
@@ -240,10 +260,12 @@ export const useBackgroundTaskStore = create<BackgroundTaskStore>((set, get) => 
                 const data = JSON.parse(dataStr);
                 const { stage } = data;
                 if (!stage) continue;
+                // Guard: bail if this IIFE is stale (a new task replaced us)
+                if (isStale(get, '_searchAbort', controller)) return;
 
                 const patch: Partial<SearchSlot> = { currentStage: stage };
                 if (data.message) patch.stageMessage = data.message;
-                if (data.current && data.total) {
+                if (data.current !== undefined && data.total) {
                   patch.progressCurrent = data.current;
                   patch.progressTotal = data.total;
                 }
@@ -265,29 +287,27 @@ export const useBackgroundTaskStore = create<BackgroundTaskStore>((set, get) => 
           }
         }
 
-        // If not already done/error, mark as done
-        const current = get().search;
-        if (current.status === 'running') {
+        // If not already done/error and still the active task, mark as done
+        if (!isStale(get, '_searchAbort', controller) && get().search.status === 'running') {
           set((s) => ({ search: { ...s.search, status: 'done' } }));
         }
       } catch (e: any) {
+        // Guard: bail if stale
+        if (isStale(get, '_searchAbort', controller)) return;
         if (e.name !== 'AbortError') {
           message.error('检索失败: ' + (e.message || ''));
           set((s) => ({ search: { ...s.search, status: 'error', error: e.message || '' } }));
-        } else {
-          // Aborted – set idle if still running
-          const current = get().search;
-          if (current.status === 'running') {
-            set((s) => ({ search: { ...s.search, status: 'idle' } }));
-          }
         }
+        // AbortError: status already set by stopSearch/resetSearch/startSearch, do nothing.
       }
 
-      // After completion, refresh history & papers
-      const st = get().search;
-      if (st.status === 'done' || st.status === 'error') {
-        const appStore = useAppStore.getState();
-        appStore.fetchPapers();
+      // After completion, refresh history & papers (only if still active)
+      if (!isStale(get, '_searchAbort', controller)) {
+        const st = get().search;
+        if (st.status === 'done' || st.status === 'error') {
+          const appStore = useAppStore.getState();
+          appStore.fetchPapers();
+        }
       }
     })();
   },
@@ -321,7 +341,7 @@ export const useBackgroundTaskStore = create<BackgroundTaskStore>((set, get) => 
       },
     });
 
-    const throttledSet = createThrottledSetter(set, 'noteGen');
+    const throttledSet = createThrottledSetter(set, 'noteGen', controller.signal);
 
     (async () => {
       let accumulated = '';
@@ -375,29 +395,37 @@ export const useBackgroundTaskStore = create<BackgroundTaskStore>((set, get) => 
           }
         }
 
-        // Ensure final content is flushed
-        set((s) => ({
-          noteGen: { ...s.noteGen, status: 'done', generatedContent: accumulated },
-        }));
+        // Ensure final content is flushed (only if still active)
+        if (!isStale(get, '_noteGenAbort', controller)) {
+          set((s) => ({
+            noteGen: { ...s.noteGen, status: 'done', generatedContent: accumulated },
+          }));
+        }
       } catch (e: any) {
+        if (isStale(get, '_noteGenAbort', controller)) return;
         if (e.name !== 'AbortError') {
           message.error('AI 生成失败: ' + (e.message || ''));
           set((s) => ({
             noteGen: { ...s.noteGen, status: 'error', generatedContent: accumulated, error: e.message || '' },
           }));
-        } else {
-          // Aborted – keep accumulated content, mark idle
-          set((s) => ({
-            noteGen: { ...s.noteGen, status: accumulated ? 'done' : 'idle', generatedContent: accumulated },
-          }));
         }
+        // AbortError: status already set by stopNoteGen/resetNoteGen/startNoteGen.
       }
     })();
   },
 
   stopNoteGen: () => {
     get()._noteGenAbort?.abort();
-    set({ _noteGenAbort: null });
+    const current = get().noteGen;
+    set((s) => ({
+      _noteGenAbort: null,
+      noteGen: {
+        ...s.noteGen,
+        status: current.status === 'running'
+          ? (current.generatedContent ? 'done' : 'idle')
+          : current.status,
+      },
+    }));
   },
 
   resetNoteGen: () => {
@@ -420,7 +448,7 @@ export const useBackgroundTaskStore = create<BackgroundTaskStore>((set, get) => 
       },
     });
 
-    const throttledSet = createThrottledSetter(set, 'exportSummary');
+    const throttledSet = createThrottledSetter(set, 'exportSummary', controller.signal);
 
     (async () => {
       let accumulated = '';
@@ -472,30 +500,38 @@ export const useBackgroundTaskStore = create<BackgroundTaskStore>((set, get) => 
           }
         }
 
-        // Ensure final content is flushed
-        set((s) => ({
-          exportSummary: { ...s.exportSummary, status: 'done', aiSummary: accumulated },
-        }));
-        message.success('AI 综合总结生成完成');
+        // Ensure final content is flushed (only if still active)
+        if (!isStale(get, '_exportSummaryAbort', controller)) {
+          set((s) => ({
+            exportSummary: { ...s.exportSummary, status: 'done', aiSummary: accumulated },
+          }));
+          message.success('AI 综合总结生成完成');
+        }
       } catch (e: any) {
+        if (isStale(get, '_exportSummaryAbort', controller)) return;
         if (e.name !== 'AbortError') {
           message.error('生成失败: ' + (e.message || ''));
           set((s) => ({
             exportSummary: { ...s.exportSummary, status: 'error', aiSummary: accumulated, error: e.message || '' },
           }));
-        } else {
-          // Aborted – keep accumulated content
-          set((s) => ({
-            exportSummary: { ...s.exportSummary, status: accumulated ? 'done' : 'idle', aiSummary: accumulated },
-          }));
         }
+        // AbortError: status already set by stopExportSummary/resetExportSummary/startExportSummary.
       }
     })();
   },
 
   stopExportSummary: () => {
     get()._exportSummaryAbort?.abort();
-    set({ _exportSummaryAbort: null });
+    const current = get().exportSummary;
+    set((s) => ({
+      _exportSummaryAbort: null,
+      exportSummary: {
+        ...s.exportSummary,
+        status: current.status === 'running'
+          ? (current.aiSummary ? 'done' : 'idle')
+          : current.status,
+      },
+    }));
   },
 
   resetExportSummary: () => {
