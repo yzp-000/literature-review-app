@@ -186,9 +186,10 @@ cp config.json.example config.json
 
 **Linux / macOS：**
 ```bash
-chmod +x start.sh
+chmod +x start.sh stop.sh
 ./start.sh
 ```
+> Ctrl+C 停止服务。重复运行不会重复启动。也可用 `./stop.sh` 单独停止。
 
 **Windows：**
 ```cmd
@@ -274,6 +275,7 @@ literature-review-app/
 ├── README.md
 ├── config.json.example          # 配置文件示例（真实 config.json 被 gitignore）
 ├── start.sh                     # 一键启动脚本（Linux/macOS）
+├── stop.sh                      # 一键停止脚本（Linux/macOS）
 ├── start.bat                    # 一键启动脚本（Windows）
 ├── stop.bat                     # 一键停止脚本（Windows）
 ├── update.sh                    # 一键更新脚本（Linux/macOS）
