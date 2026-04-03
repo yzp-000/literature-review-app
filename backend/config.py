@@ -77,7 +77,16 @@ def load_config() -> dict:
     _ensure_config()
     if CONFIG_PATH.exists():
         with open(CONFIG_PATH, "r", encoding="utf-8") as f:
-            return json.load(f)
+            config = json.load(f)
+        # Auto-fill missing keys from DEFAULT_CONFIG (handles upgrades)
+        updated = False
+        for key, default_val in DEFAULT_CONFIG.items():
+            if key not in config:
+                config[key] = default_val
+                updated = True
+        if updated:
+            save_config(config)
+        return config
     return DEFAULT_CONFIG.copy()
 
 

@@ -15,5 +15,6 @@
   "ui_preferences": {
     "language": "zh-CN",
     "theme": "light"
-  }
+  },
+  "note_template": ""
 }
