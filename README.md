@@ -194,7 +194,7 @@ chmod +x start.sh
 ```cmd
 start.bat
 ```
-> 双击 `start.bat` 即可，会自动打开两个命令行窗口分别运行前后端，并在 3 秒后打开浏览器。
+> 双击 `start.bat` 即可，服务窗口自动最小化运行，3 秒后打开浏览器。重复双击不会重复启动。停止服务：在主窗口按任意键，或双击 `stop.bat`。
 
 或手动分别启动：
 
@@ -275,6 +275,7 @@ literature-review-app/
 ├── config.json.example          # 配置文件示例（真实 config.json 被 gitignore）
 ├── start.sh                     # 一键启动脚本（Linux/macOS）
 ├── start.bat                    # 一键启动脚本（Windows）
+├── stop.bat                     # 一键停止脚本（Windows）
 ├── update.sh                    # 一键更新脚本（Linux/macOS）
 ├── update.bat                   # 一键更新脚本（Windows）
 │

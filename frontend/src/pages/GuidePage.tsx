@@ -304,8 +304,8 @@ const faqPanels = [
       <div>
         <Paragraph>在项目根目录运行：</Paragraph>
         <ul>
-          <li><Text strong>Linux / macOS</Text>：<Text code>./start.sh</Text></li>
-          <li><Text strong>Windows</Text>：双击 <Text code>start.bat</Text></li>
+          <li><Text strong>Linux / macOS</Text>：<Text code>./start.sh</Text>（Ctrl+C 停止）</li>
+          <li><Text strong>Windows</Text>：双击 <Text code>start.bat</Text>（重复双击不会重复启动；按任意键或双击 <Text code>stop.bat</Text> 停止服务）</li>
         </ul>
         <Paragraph>
           启动后访问 <Text code>http://127.0.0.1:5173</Text>（前端）。
